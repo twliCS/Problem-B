@@ -53,6 +53,7 @@ public:
     }
     float get_pf()const{return power_factor;}
     std::pair<int,int>Grid_size()const{return {X_grids,Y_grids};}
+    bool dir_is_H()const{return is_H;}
 private:
     using Ggrid_1D = std::vector<Ggrid>;
     using Ggrid_2D = std::vector<Ggrid_1D>;
@@ -83,8 +84,8 @@ public:
     }
     int Layer_Num()const{return Layers.size();}
     std::pair<int,int>Grid_size()const{return Layers.at(0).Grid_size();}
-private:
     Layer& operator[](int i){return Layers.at(i-1);}
+private:
     std::vector<Layer>Layers;
 };
 //P1,P2 only differ by one dir.

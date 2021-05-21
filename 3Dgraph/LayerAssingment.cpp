@@ -2,6 +2,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <forward_list>
 
 std::ostream& operator<<(std::ostream&os,const Point&p)
 {
@@ -65,43 +66,140 @@ void add_net(Graph&graph,NET_3D&net)//need consider starting point.
 struct Queue_node{
     Point p;
     float cost;         //cost = Sigma (PowerFactor(i)*GgridLength(i)) 
-    int wl;
-    std::string path;
+    Queue_node*parent;
 };
 class min_cost{
 public:
-    bool operator()(const Queue_node&n1,const Queue_node&n2){return n1.cost > n2.cost;}//cost越大越下面
+    bool operator()(const Queue_node*n1,const Queue_node*n2){return n1->cost > n2->cost;}//cost越大越下面
 };
-using Priority_Q = std::priority_queue<Queue_node,std::vector<Queue_node>,min_cost>;
-
-//lay : z
-//dir : x or y
-
-//功能:
-//1.更新COST_TABLE
-//2.放入Priority_Q
+using Priority_Q = std::priority_queue<Queue_node,std::vector<Queue_node*>,min_cost>;
 
 
+NET_3D X_Z_dir(segment&s,std::map<Point,bool>&record,Graph&graph,int min_layer)//return subnet.
+{
+    if(s.p1.y!=s.p2.y)
+    {
+        std::cerr<<"Error ! X_Z_dir , s.p1.y must equal to s.p2.y!\n";
+        exit(1);
+    }
 
-// NET_3D LayerAssignment(NET_3D&sol2D,Graph&graph)//Assin one Net from 2D_sol to 3D Graph.
-// {
+    if(s.p1.x > s.p2.x)//always let p1.x < p2.x
+    {
+        std::swap(s.p1,s.p2);
+    }
+
+    int x1 = s.p1.x;
+    int x2 = s.p2.x;
+    int z1 = s.p1.z;
+    int z2 = s.p2.z;
+    int y = s.p1.y;
+    int max_layer = graph.Layer_Num();
+    int m = max_layer-min_layer+1;
+    int n = x2-x1 + 1;
+    std::vector<std::vector<float>>COST(m,std::vector<float>(n,INT_MAX));
+
+    Priority_Q Q;
+    auto routing_cost = [&graph,&record](int x,int y,int z)->float
+    {
+        if(record.find({x,y,z})==record.end())
+            return graph[z].get_pf();
+        else 
+            return 0;
+    };
+    auto is_congestion = [&graph,&record](int x,int y,int z)->bool
+    {
+        if(record.find({x,y,z})==record.end())//need one more demand
+            return graph(x,y,z).capacity == graph(x,y,z).demand;//already congestion,can't offer one  more demand.
+        else //do not need one more demand
+            return false;
+    };
+    auto do_relax = [&COST,&Q,&routing_cost,x1,min_layer](int x,int y,int z,Queue_node*v)
+    {
+        float cost = v->cost + routing_cost(x,y,z);
+        if(cost < COST.at(z-min_layer).at(x-x1))
+        {
+            COST.at(z-min_layer).at(x-x1) = cost;
+            Q.push(new Queue_node{{x,y,z},cost,v});
+        } 
+    };
+    
+    
+    Q.push(new Queue_node{{x1,y,z1},routing_cost(x1,y,z1),nullptr});
+    
+    std::forward_list<Queue_node*>recycle;
+
+    while(!Q.empty())
+    {
+        
+        Queue_node* v = Q.top();Q.pop();
+        recycle.push_front(v);
+        int x = v->p.x;
+        int z = v->p.z;
+        bool is_H = graph[z].dir_is_H();
+        if(x==x2&&z==z2)
+        {
+            break;
+        }
+        if(x+1 <= x2&&is_H)// (x+1,y,z)
+        {
+            if(!is_congestion(x+1,y,z))
+            {
+                do_relax(x+1,y,z,v);
+            }
+        }
+        if(z+1 <= max_layer)//(x,y,z+1)
+        {
+            if(!is_congestion(x,y,z+1))
+            {
+                do_relax(x,y,z+1,v);
+            }
+
+        }
+        if(z-1 >=min_layer)//(x,y,z-1)
+        {
+            if(!is_congestion(x,y,z-1))
+            {
+                do_relax(x,y,z-1,v);
+            }
+        }
+    }
 
 
-//     //Find Feasible path 
-//     std::map<Point,bool>record;//one net one Record
-//     for(auto &seg:sol2D)//segment (p1.x,p1.y) and (p2.x,p2.y) only diff by one dir.
-//     {
-//         if(seg.p1.x!=seg.p2.x || seg.p1.y!=seg.p2.y)
-//         {
-//             //int min_layer = minlayer[];
-//             // if(seg.p1.x!=seg.p2.x)
-//             //     Dijkstra_x();
-//             // else 
-//             //     Dijkstra_y();
-//         }
-//     }
-//     //add_net_3D();
-// }
+    //add to record.
+    // NET_3D
+
+    Queue_node *ptr = recycle.front();
+    std::cout<<"cost = "<<ptr->cost<<"\n";
+    std::cout<<"path = ";
+    while(ptr!=nullptr)
+    {
+        record.insert({ptr->p,true});
+        std::cout<<ptr->p<<" ";
+        ptr = ptr->parent;
+    }
+    std::cout<<"\n";
+    recycle.clear();//delete dynamic memory.
+}
+
+
+
+NET_3D LayerAssignment(NET_3D&sol2D,Graph&graph)//Assin one Net from 2D_sol to 3D Graph.
+{
+    //Find Feasible path 
+    std::map<Point,bool>record;//one net one record
+    for(auto &seg:sol2D)//segment (p1.x,p1.y) and (p2.x,p2.y) only diff by one dir.
+    {
+        if(seg.p1.x!=seg.p2.x || seg.p1.y!=seg.p2.y)
+        {
+            //int min_layer = minlayer[];
+            // if(seg.p1.x!=seg.p2.x)
+            //     Dijkstra_x();
+            // else 
+            //     Dijkstra_y();
+        }
+    }
+    //add_net_3D();
+}
 
 
 //---------------------------------------------------------------------------Layer Assignment Function--------------------------------------------------------
@@ -156,12 +254,17 @@ int main()
         {{2,2,2},{2,5,2}},
         {{2,2,3},{4,2,3}}
     };
-    add_net(graph,net1);
-    show_demand(graph);
-    add_net(graph,net3);
-    show_demand(graph);
+    // add_net(graph,net1);
+    // show_demand(graph);
+    // add_net(graph,net3);
+    // show_demand(graph);
 
-
+    segment s{{1,2,3},{4,2,1}};
+    std::map<Point,bool>record;
+    X_Z_dir(s,record,graph,1);
+    segment s2{{1,2,3},{2,2,3}};
+   
+    X_Z_dir(s2,record,graph,1);
 
     
     return 0;
