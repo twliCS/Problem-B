@@ -13,8 +13,18 @@ struct Ggrid{
         if(capacity==0)return 1; //以免 / 0 error.
         return demand/capacity;
     }
-    void add_demand(int d = 1){demand+=d;}
-    void adjust_cap(int offset){capacity+=offset;}
+    void add_demand(int d = 1){
+        if(d<0)
+        {
+            std::cerr<<"Ggrid add_demand(int d) , d must > 0!!\n";
+            exit(1);
+        }
+        demand+=d;
+    }
+    void adjust_cap(int offset){
+        capacity+=offset;
+        if(capacity<0)capacity = demand;//測試用 在繞線時不可能會進行調整...
+    }
 };
 
 class Layer{
@@ -32,10 +42,20 @@ public:
         {
             std::cerr<<"Error : Layer index x must larger than 1!\n";
             exit(1);
-        }    
+        } 
+        if(x>X_grids)
+        {
+            std::cerr<<"Error : Layer index x must less than X_grids!\n";
+            exit(1);
+        }   
         if(y<1)
         {
             std::cerr<<"Error : Layer index y must larger than 1!\n";
+            exit(1);
+        }
+        if(y>Y_grids)
+        {
+            std::cerr<<"Error : Layer index y must less than Y_grids!\n";
             exit(1);
         }
         return (*this)[y][x-1];

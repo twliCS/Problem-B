@@ -20,6 +20,11 @@ public:
             std::cerr<<"class Graph: operator()(int x,int y,int z) : Error : Layer index z must larger than 0!\n";
             exit(1);
         }
+        if(z>Layers.size())
+        {
+            std::cerr<<"class Graph: operator()(int x,int y,int z) : Error : Layer index z must less than max_layer!\n";
+            exit(1);
+        }
         return (*this)[z](x,y);
     }
     int Layer_Num()const{return Layers.size();}
@@ -28,6 +33,11 @@ public:
         if(i<1)
         {
             std::cerr<<"class Graph: operator[](int i) : Error : i must larger than 0!\n";
+            exit(1);
+        }
+        if(i>Layers.size())
+        {
+            std::cerr<<"class Graph: operator()(int x,int y,int z) : Error : Layer index z must less than max_layer!\n";
             exit(1);
         }
         return Layers.at(i-1);

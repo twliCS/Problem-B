@@ -108,6 +108,7 @@ inline std::pair<bool,float> VIA_cost(int x,int y,int z,Graph&graph,Net_routing_
         {
             return {true,FLT_MAX};
         }
+          
         auto cong = is_congestion(x,y,z,graph,net_info);
         if(cong.first==true) return {true,FLT_MAX};//congestion
         if(cong.second==true) return {false,net_info.weight* graph[z].get_pf() + VIA_W};//need one demand

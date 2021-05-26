@@ -7,7 +7,9 @@
 
 //-----------------------------------------------------Point-----------------------------------------------------------
 struct Point{
-    int x,y,z = 0;
+    Point(int x_val,int y_val,int z_val = 1)
+        :x{x_val},y{y_val},z{z_val}{}
+    int x,y,z;
 };
 
 inline bool operator<(const Point&p1,const Point&p2)
