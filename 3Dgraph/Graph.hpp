@@ -17,14 +17,21 @@ public:
     Ggrid& operator()(int x,int y,int z){
         if(z<1)
         {
-            std::cerr<<"Error : Layer index z must larger than 1!\n";
+            std::cerr<<"class Graph: operator()(int x,int y,int z) : Error : Layer index z must larger than 0!\n";
             exit(1);
         }
         return (*this)[z](x,y);
     }
     int Layer_Num()const{return Layers.size();}
     std::pair<int,int>Grid_size()const{return Layers.at(0).Grid_size();}
-    Layer& operator[](int i){return Layers.at(i-1);}
+    Layer& operator[](int i){
+        if(i<1)
+        {
+            std::cerr<<"class Graph: operator[](int i) : Error : i must larger than 0!\n";
+            exit(1);
+        }
+        return Layers.at(i-1);
+    }
 private:
     std::vector<Layer>Layers;
 };

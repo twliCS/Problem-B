@@ -9,7 +9,10 @@ struct Ggrid{
     Ggrid(int supply,int dmnd = 0):capacity{supply},demand{dmnd}{}
     int capacity;
     int demand;
-    float congestion_rate()const{return demand/capacity;}
+    float congestion_rate()const{
+        if(capacity==0)return 1; //以免 / 0 error.
+        return demand/capacity;
+    }
     void add_demand(int d = 1){demand+=d;}
     void adjust_cap(int offset){capacity+=offset;}
 };

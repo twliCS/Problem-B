@@ -27,15 +27,15 @@ void add_segment_3D(Point&P1,Point&P2,Graph&graph,Net_routing_Info&net_info)//do
     record_demand(x,y,z);//(x,y,z) = (t_x,t_y,t_z).
 }
 
-void add_net(Graph&graph,NET_3D&net,float weight,int min_layer)//need consider starting point.
-{
-    Point start_Ggrid = net.at(0).p1;
-    Net_routing_Info net_info;//紀錄以免重算demand
-    net_info.weight = weight;
-    net_info.min_Layer = min_layer;
-    for(auto s:net)//for each segment_3D
-    {
-        add_segment_3D(s.p1,s.p2,graph,net_info);
-    }
-    std::cout<<"this net's WL = "<<net_info.Pass_grids.size()<<"\n";
-}
+// void add_net(Graph&graph,NET_3D&net,float weight,int min_layer)//need consider starting point.
+// {
+//     Point start_Ggrid = net.at(0).p1;
+//     Net_routing_Info net_info;//紀錄以免重算demand
+//     net_info.weight = weight;
+//     net_info.min_Layer = min_layer;
+//     for(auto s:net)//for each segment_3D
+//     {
+//         add_segment_3D(s.p1,s.p2,graph,net_info);
+//     }
+//     std::cout<<"this net's WL = "<<net_info.Pass_grids.size()<<"\n";
+// }

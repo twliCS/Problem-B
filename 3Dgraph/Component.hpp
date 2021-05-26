@@ -39,10 +39,11 @@ using NET_3D = std::vector<segment>;
 //功能:
 //1. 紀錄min_layer以及weight等Net性質
 //2. 用來記錄這條NET通過的Ggrid座標,用以判斷是否需要demand.
-
 //到時候rip-up reroute也要從這裡拆掉
 struct Net_routing_Info
 {
+    Net_routing_Info(int min_l,float w)
+        :min_Layer{min_l},weight{w}{}
     int min_Layer;//This Net's min_Layer constraint.
     std::map<Point,bool>Pass_grids;//The Grids that this Net already pass through.
     float weight;

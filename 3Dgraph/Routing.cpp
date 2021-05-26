@@ -7,46 +7,34 @@
 
 
 
-//繞線COST超參數
-float VIA_W = 1;
-float ESCAPE_W = 1;
-int LAYER_SEARCH_RANGE = 1;
-
-bool Point_is_Valid(const Point &P,const Graph&graph,int min_Layer);//用來檢查給定的point是否在合法範圍
-float routing_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info);// 用來計算由到目標點x,y,z的cost 會包含net_weight*powerfactor,以及逃脫率
-float VIA_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info){return net_info.weight* graph[z].get_pf() + VIA_W;}
-float VIA_cost(Point P,Graph&graph,Net_routing_Info&net_info){return VIA_cost(P.x,P.y,P.z,graph,net_info);}
 
 
-//Routing
-std::pair<std::vector<Point>,float> Layer_routing(Point &P,int delta_x,int delta_y,Graph&graph,Net_routing_Info& net_info);
-
-
-
-bool Point_is_Valid(const Point &P,const Graph&graph,int min_Layer)
+//some error必須修正
+//escape rate 要考慮來的人是誰
+std::pair<bool,float> routing_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info)
 {
-    int bound_x = graph.Grid_size().first;
-    int bound_y = graph.Grid_size().second;
-    int max_L = graph.Layer_Num();
-    if(P.x<1||P.y<1||P.z<min_Layer)return false;
-    if(P.x>bound_x||P.y>bound_y||P.z>max_L)return false;
-    return true;
-}
-float routing_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info)
-{
+    if(!Point_is_Valid(x,y,z,graph,net_info.min_Layer))
+        return {false,FLT_MAX};
+    auto check = is_congestion(x,y,z,graph,net_info);
+    if(check.first==true){return {true,INT_MAX};}//若無法到目標點X,Y,Z直接回傳congestion
+
+    float net_cost = (check.second==true) ? net_info.weight * graph[z].get_pf() : 0;//是否需要額外demand才能到x,y,z
+
+    
+    //計算escape_rate
+
     float nc = 0;//neighbor_congestion , the higher congestion it is,the lower escape_rate it is.
 
-    int max_x = graph.Grid_size().first;
-    int max_y = graph.Grid_size().second;
-    int min_L = net_info.min_Layer;
-    int max_L = graph.Layer_Num();
 
     //neighborhood congestion caculate function.
     //如果neighbor已經屬於net一部分,則不用考慮他的congestion,因為一定能過去
-    auto nc_cac = [&graph,&net_info,max_x,max_y,max_L,min_L](float& nc,int x,int y,int z)
+    //這部分ESCAPE_W必須調整的好,否則就算無法到達neighbor也無法計算出來 : congestion_rate : 0~1
+    auto nc_cac = [&graph,&net_info](float& nc,int x,int y,int z)
     {
-        if(Point_is_Valid({x,y,z},graph,net_info.min_Layer) && net_info.not_in(x,y,z) ) 
-            nc += graph(x,y,z).congestion_rate(); 
+        
+        if(Point_is_Valid({x,y,z},graph,net_info.min_Layer) && net_info.not_in(x,y,z)) {
+            nc += graph(x,y,z).congestion_rate(); //congestion_rate : 0~1
+        }
     };
     if(z % 2 == 1){//this Layer is H direction
         nc_cac(nc,x+1,y,z);
@@ -56,10 +44,9 @@ float routing_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info)
         nc_cac(nc,x,y+1,z);
         nc_cac(nc,x,y-1,z);
     }
-    //VIA direction
-    nc_cac(nc,x,y,z+1);
     nc_cac(nc,x,y,z-1);
-    return net_info.weight * graph[z].get_pf() + ESCAPE_W * nc;
+    nc_cac(nc,x,y,z+1);
+    return {false,net_cost + ESCAPE_W * nc};//回傳congestion=false, cost = net_cost + ESCAPE_W * nc
 }
 
 
@@ -99,11 +86,12 @@ public:
         int x = next_point->p.x;
         int y = next_point->p.y;
         int z = next_point->p.z;
-        auto cong = is_congestion(x,y,z,*gr,*info); //if x,y,z is congestion : return nullptr. 
-        if(cong.first==true)return nullptr;
-        path_node * u = new path_node{{x,y,z+_delta},next_point->cost,next_point};
-        if(cong.second==true)
-                u->cost += VIA_cost(u->p,*gr,*info);
+
+        auto via_cost = VIA_cost(x,y,z,*gr,*info);
+        if(via_cost.first==true)//congestion
+            return nullptr;
+        
+        path_node* u = new path_node{{x,y,z+_delta},next_point->cost+via_cost.second,next_point};
         path_node*ret = next_point;
         next_point = u;
         return ret;
@@ -115,27 +103,24 @@ private:
     Net_routing_Info * info;    
 };
 
-
-std::pair<std::vector<Point>,float> Layer_routing(Point &P,int delta_x,int delta_y,Graph&graph,Net_routing_Info& net_info)
+std::tuple<std::vector<Point>,float,Point> Layer_routing(const Point &P,int delta_x,int delta_y,Graph&graph,Net_routing_Info& net_info)
 {
 
-    //lambda : 用來簡化參數
-    auto IS_CON = [&graph,&net_info](int x,int y,int z){return is_congestion(x,y,z,graph,net_info);};
-    auto ROUT_COST = [&graph,&net_info](int x,int y,int z){return routing_cost(x,y,z,graph,net_info);};
-
-    auto Try_ROUT = [&graph,&net_info,&IS_CON,&ROUT_COST](int x,int y,int z,path_node*parent,float &min_c,path_node*&min_path){
-        auto cong = IS_CON(x,y,z);
-        if(!cong.first){//目標點沒有congestion
-            bool need_dmd = cong.second;
-            float cost = parent->cost + ( (need_dmd) ? ROUT_COST(x,y,z) : 0);
+    //試著由壓縮圖上的(P.x,P.y)移動到(P.x+delta_x,P.y+delta_y)
+    auto Try_ROUT = [&graph,&net_info](int x,int y,int z,path_node*parent,float &min_c,path_node*&min_path){
+        auto result = routing_cost(x,y,z,graph,net_info);
+        if(!result.first){//目標點沒有congestion
+            float cost = result.second + parent->cost;
             if(cost < min_c)
             {
-                delete min_path;
+                if(min_path!=nullptr){delete min_path;}
                 min_path = new path_node{{x,y,z},cost,parent};//新的最佳解
                 min_c = cost;
             }
         }
     };
+
+
     //移動Layer時試著進行Rouring到target : (x+delta_x,y+delta_y,z)
     auto Layer_ROUT = [&Try_ROUT](path_node*v,int delta_x,int delta_y,float&min_c,path_node*&min_path)
     {
@@ -146,59 +131,51 @@ std::pair<std::vector<Point>,float> Layer_routing(Point &P,int delta_x,int delta
             Try_ROUT(v->p.x,v->p.y+delta_y,l,v,min_c,min_path);
     };
 
-
+   
     //---------------------------------------------------------------參數設定-----------------------------------------------------
 
     //Scan Layer range up / down
     int upper_layer = std::min(P.z + LAYER_SEARCH_RANGE, graph.Layer_Num()); 
     int lower_layer = std::max(P.z - LAYER_SEARCH_RANGE, net_info.min_Layer);
 
+    
 
-    float min_cost = INT_MAX;
+    float min_cost = FLT_MAX;
     path_node *min_cost_path = nullptr;//if no path,then return false
     
     node_gen GEN(graph,net_info,P,1);//初始化,delta設為1:往上
     std::forward_list<path_node*>recycle;//記憶體回收器
     path_node*v;
-
+     
     //--------------------------------------------------------------Layer_ROUT---------------------------------------------------
-    while(( v = GEN()) && (v->p.z<=upper_layer) )//move upper
+    while(( v = GEN()) && (v->p.z <= upper_layer) )//move upper
     {
         Layer_ROUT(v,delta_x,delta_y,min_cost,min_cost_path);
         recycle.push_front(v);
+        
     }
-    GEN.init(graph,net_info,P,-1);
-    while((v = GEN() )&& (v->p.z>=lower_layer) )//move lower
+    
+    GEN.init(graph,net_info,P,-1);//設定向下
+    while((v = GEN() )&& (v->p.z >= lower_layer))//move lower
     {
         Layer_ROUT(v,delta_x,delta_y,min_cost,min_cost_path);
         recycle.push_front(v);
     }
     
+    
     //-------------------------------------------------------------儲存最佳解------------------------------------------------------
-    if(min_cost_path==nullptr){return {{},INT_MAX};}
+    if(min_cost_path==nullptr){return {{},FLT_MAX,P};}
 
 
     //紀錄該路徑的三個點 一條z方向,一條V或H 即可用來還原路線
     std::vector<Point>PATH;
-    PATH.push_back(min_cost_path->p);//目標點
+    PATH.push_back(min_cost_path->p);//目標點  PATH.at(0)  ,若外部要使用,則需要更新
     PATH.push_back(min_cost_path->parent->p);//目標Layer
     PATH.push_back(P);//起始點
 
-    P = min_cost_path->p;//更新座標(到時候改掉)
     recycle.clear();//回收
 
-    return {PATH,min_cost};
-}
-
-
-
-std::pair<std::vector<Point>,float> Heuristic_routing(Point &P,int delta_x,int delta_y,Graph&graph,Net_routing_Info& net_info,int target_layer)
-{
-    // if(target_layer!=-1) // target is pin
-    //     return Monotonic_one_mov();
-
-
-    return Layer_routing(P,delta_x,delta_y,graph,net_info);
+    return {PATH,min_cost,PATH.at(0)};
 }
 
 
@@ -230,9 +207,10 @@ std::pair<bool,Point> L_shape(const Point &P1,const Point &P2,Graph&graph,Net_ro
     float path2_cost = 0;
     std::vector<std::vector<Point>>PATH2;
 
-    //L_shape 特有的
-    auto one_move = [&graph,&net_info](Point&cur,const Point&target,int delta_x,int delta_y)
+
+    auto estimate_one_move = [&graph,&net_info](Point&cur,const Point&target,int delta_x,int delta_y)
     {
+        
         if(Manhattan_distance_2D(cur,target) != 1){//target is not P2.
            return Heuristic_routing(cur,delta_x,delta_y,graph,net_info,-1);
         }
@@ -240,19 +218,22 @@ std::pair<bool,Point> L_shape(const Point &P1,const Point &P2,Graph&graph,Net_ro
             return Heuristic_routing(cur,delta_x,delta_y,graph,net_info,target.z);//assign to Layer : target.z
         }
     };
-
-    auto straight_move = [&one_move](Point&cur_p,int &cur,const Point& target_p,int target,int dx,int dy,std::vector<std::vector<Point>>&PATH)
+    //straight_move是一個使用estimate_one_move的範例
+    auto straight_move = [&estimate_one_move](Point&cur_p,int &cur,const Point& target_p,int target,int dx,int dy,std::vector<std::vector<Point>>&PATH)
     {
         bool can_reach = true;
         float cost = 0;
         while( (cur!=target) && (can_reach==true) )
         {
-            auto move_result = one_move(cur_p,target_p,dx,dy);
 
-            if(!move_result.first.empty())
+            auto move_result = estimate_one_move(cur_p,target_p,dx,dy);
+            
+            auto one_move_path = std::get<0>(move_result);
+            if(!one_move_path.empty())
             {
-                PATH.push_back(move_result.first);
-                cost += move_result.second;
+                PATH.push_back(one_move_path);
+                cost += std::get<1>(move_result);//取得cost
+                cur_p = std::get<2>(move_result);//移動至目標點
             }
             else 
                 can_reach = false;
@@ -305,17 +286,4 @@ std::pair<bool,Point> L_shape(const Point &P1,const Point &P2,Graph&graph,Net_ro
 
     Point P2_final = BEST_PATH->at(BEST_PATH->size()-1).at(0);
     return {true,P2_final};
-}
-
-
-
-
-
-
-int main()
-{
-    
-
-
-    return 0;
 }
