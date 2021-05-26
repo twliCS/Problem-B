@@ -7,52 +7,6 @@
 
 
 
-
-
-//some error必須修正
-//escape rate 要考慮來的人是誰
-std::pair<bool,float> routing_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info)
-{
-    if(!Point_is_Valid(x,y,z,graph,net_info.min_Layer))
-        return {false,FLT_MAX};
-    auto check = is_congestion(x,y,z,graph,net_info);
-    if(check.first==true){return {true,INT_MAX};}//若無法到目標點X,Y,Z直接回傳congestion
-
-    float net_cost = (check.second==true) ? net_info.weight * graph[z].get_pf() : 0;//是否需要額外demand才能到x,y,z
-
-    
-    //計算escape_rate
-
-    float nc = 0;//neighbor_congestion , the higher congestion it is,the lower escape_rate it is.
-
-
-    //neighborhood congestion caculate function.
-    //如果neighbor已經屬於net一部分,則不用考慮他的congestion,因為一定能過去
-    //這部分ESCAPE_W必須調整的好,否則就算無法到達neighbor也無法計算出來 : congestion_rate : 0~1
-    auto nc_cac = [&graph,&net_info](float& nc,int x,int y,int z)
-    {
-        
-        if(Point_is_Valid({x,y,z},graph,net_info.min_Layer) && net_info.not_in(x,y,z)) {
-            nc += graph(x,y,z).congestion_rate(); //congestion_rate : 0~1
-        }
-    };
-    if(z % 2 == 1){//this Layer is H direction
-        nc_cac(nc,x+1,y,z);
-        nc_cac(nc,x-1,y,z);
-    }
-    else{//this Layer is V direction
-        nc_cac(nc,x,y+1,z);
-        nc_cac(nc,x,y-1,z);
-    }
-    nc_cac(nc,x,y,z-1);
-    nc_cac(nc,x,y,z+1);
-    return {false,net_cost + ESCAPE_W * nc};//回傳congestion=false, cost = net_cost + ESCAPE_W * nc
-}
-
-
-
-
-
 struct path_node //用來記錄經過的gGrid座標
 {
     Point p;
@@ -103,12 +57,58 @@ private:
     Net_routing_Info * info;    
 };
 
+//some error必須修正
+//escape rate 要考慮來的人是誰
+std::pair<bool,float> routing_cost(int x,int y,int z,Graph&graph,Net_routing_Info&net_info,path_node*parent)
+{
+    if(!Point_is_Valid(x,y,z,graph,net_info.min_Layer))
+        return {false,FLT_MAX};
+    auto check = is_congestion(x,y,z,graph,net_info);
+    if(check.first==true){return {true,INT_MAX};}//若無法到目標點X,Y,Z直接回傳congestion
+
+    float net_cost = (check.second==true) ? net_info.weight * graph[z].get_pf() : 0;//是否需要額外demand才能到x,y,z
+
+    
+    //計算escape_rate
+
+    float nc = 0;//neighbor_congestion , the higher congestion it is,the lower escape_rate it is.
+
+
+    //neighborhood congestion caculate function.
+    //如果neighbor已經屬於net一部分,則不用考慮他的congestion,因為一定能過去
+    //這部分ESCAPE_W必須調整的好,否則就算無法到達neighbor也無法計算出來 : congestion_rate : 0~1
+    auto nc_cac = [&graph,&net_info,&parent](float& nc,int x,int y,int z)
+    {
+        
+        if(Point_is_Valid({x,y,z},graph,net_info.min_Layer) && net_info.not_in(x,y,z)&&!((parent->p.x!=x)&&(parent->p.y!=y)&&(parent->p.z!=z))) {
+            nc += graph(x,y,z).congestion_rate(); //congestion_rate : 0~1
+        }
+    };
+    if(z % 2 == 1){//this Layer is H direction
+        nc_cac(nc,x+1,y,z);
+        nc_cac(nc,x-1,y,z);
+    }
+    else{//this Layer is V direction
+        nc_cac(nc,x,y+1,z);
+        nc_cac(nc,x,y-1,z);
+    }
+    nc_cac(nc,x,y,z-1);
+    nc_cac(nc,x,y,z+1);
+    return {false,net_cost + ESCAPE_W * nc};//回傳congestion=false, cost = net_cost + ESCAPE_W * nc
+}
+
+
+
+
+
+
+
 std::tuple<std::vector<Point>,float,Point> Layer_routing(const Point &P,int delta_x,int delta_y,Graph&graph,Net_routing_Info& net_info)
 {
 
     //試著由壓縮圖上的(P.x,P.y)移動到(P.x+delta_x,P.y+delta_y)
     auto Try_ROUT = [&graph,&net_info](int x,int y,int z,path_node*parent,float &min_c,path_node*&min_path){
-        auto result = routing_cost(x,y,z,graph,net_info);
+        auto result = routing_cost(x,y,z,graph,net_info,parent);
         if(!result.first){//目標點沒有congestion
             float cost = result.second + parent->cost;
             if(cost < min_c)

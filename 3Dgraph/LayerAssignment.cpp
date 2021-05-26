@@ -18,8 +18,7 @@ void show_demand(Graph&graph,Point*Pin_now = nullptr)
     std::pair<int,int>Grids_size = graph.Grid_size();
     
 
-    int high_d = 0;
-    int low_d = 0;
+    int total_demand = 0;
     for(int z = 1;z <= Layer_Num;z++)
     {
         
@@ -33,16 +32,13 @@ void show_demand(Graph&graph,Point*Pin_now = nullptr)
                 else 
                     std::cout<<graph(x,y,z).demand<<" ";
 
-                if(z>=5)
-                    high_d+=graph(x,y,z).demand;
-                else 
-                    low_d+=graph(x,y,z).demand;
+                total_demand+=graph(x,y,z).demand;
             }
             std::cout<<"\n";
         }
     }
-    std::cout<<"total demand in L1 L2 L3 L4 :"<<low_d<<"\n";
-    std::cout<<"total demand in L5 L6 L7 :"<<high_d<<"\n";
+    std::cout<<"total demands:"<<total_demand<<"\n";
+    std::cout<<"rate = "<<total_demand/(float)(7*50*100)<<"\n";
 }
 
 
@@ -56,27 +52,30 @@ void move_to_final(Graph&graph,Net_routing_Info&net_info,std::vector<Point>&poin
 }
 
 //繞線COST超參數
-float VIA_W = 1;
-float ESCAPE_W = 1;
-int LAYER_SEARCH_RANGE = 10;
+float VIA_W = 0;
+float ESCAPE_W = 1000;
+int LAYER_SEARCH_RANGE = 7;
 
 int main()
 {
-    std::cout<<"enter escape_w\n";
-    std::cin>>ESCAPE_W;
-
+    // std::cout<<"enter escape_w\n";
+    // std::cin>>ESCAPE_W;
+    // std::cout<<"enter VIA_W\n";
+    // std::cin>>VIA_W;
+    // std::cout<<"enter Layer Serach Range\n";
+    // std::cin>>LAYER_SEARCH_RANGE;
   
     //--------------------------------------------Graph Init
     Point P1{1,1};
     Point P2{10,10};
     Graph graph = std::vector<Layer>{//M1,M2,M3
-        Layer(P1,P2,true,10,100),   // M1 : H
-        Layer(P1,P2,false,10,100),  // M2 : V 
-        Layer(P1,P2,true,1,100),   //  M3 : H
-        Layer(P1,P2,false,1,100),   //  M4 : v
-        Layer(P1,P2,true,0.1,100),   //  M5 : H
-        Layer(P1,P2,false,0.1,100),   //  M6 : v
-        Layer(P1,P2,true,0.1,100),   //  M7 : H
+        Layer(P1,P2,true,1,50),   // M1 : H
+        Layer(P1,P2,false,1,50),  // M2 : V 
+        Layer(P1,P2,true,1,50),   //  M3 : H
+        Layer(P1,P2,false,1,50),   //  M4 : v
+        Layer(P1,P2,true,1,50),   //  M5 : H
+        Layer(P1,P2,false,1,50),   //  M6 : v
+        Layer(P1,P2,true,1,50),   //  M7 : H
     };
 
     
@@ -86,8 +85,8 @@ int main()
 
     Point PIN1{1,1};
 
-    int test_time = 1000000;
-    srand(0);
+    int test_time = 7*50*100;
+    srand(time(NULL));
 
     int operation = 0;
     while(test_time--)

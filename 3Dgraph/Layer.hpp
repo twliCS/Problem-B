@@ -11,7 +11,7 @@ struct Ggrid{
     int demand;
     float congestion_rate()const{
         if(capacity==0)return 1; //以免 / 0 error.
-        return demand/capacity;
+        return (float)demand/capacity;
     }
     void add_demand(int d = 1){
         if(d<0)
