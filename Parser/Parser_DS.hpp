@@ -32,7 +32,6 @@ struct MasterCell
 
 struct CellInst{
     CellInst(std::string&info,std::unordered_map<std::string,MasterCell*>&mCells,std::unordered_map<std::string,CellInst*>&CellInsts);
-
     MasterCell* mCell;
     int row;//<gGridRowIdx>
     int col;//<gGridColIdx>
@@ -42,19 +41,12 @@ struct CellInst{
 
 struct Net{
     std::string netName;//<netName>
-    
     Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,std::unordered_map<std::string,Net*>&Nets);
-    
-    void add_pin(CellInst*cell,std::string pin)
-    {
-        net_pins.push_back({cell,pin});
-    }
     int minLayer;//<minRoutingLayConstraint>
     float weight;//<weight> 
     using PIN = std::pair<CellInst*,std::string>;
     //記下CellInst*是為了以後移動可以得到更新的座標 x,y   
     //std::string代表Pin的name,用來CellInst內查找Pin    
-    
     std::vector<PIN> net_pins;
 };
 
