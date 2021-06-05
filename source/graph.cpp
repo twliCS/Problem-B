@@ -1,9 +1,16 @@
-#include "graph.hpp"
+#include "../header/graph.hpp"
+#include "../header/Routing.hpp"
+
+
+
+//------------------------------------------------------Destructor-------------------------------------------------------------
+Graph::~Graph(){}
+
+
+//------------------------------------------------------Constructor--------------------------------------------------------------
 Graph::Graph(std::string fileName){
     parser(fileName);
 }
-
-Graph::~Graph(){}
 
 void Graph::parser(std::string fileName){
     std::ifstream is{fileName};
@@ -19,44 +26,36 @@ void Graph::parser(std::string fileName){
     is >> type >> MAX_Cell_MOVE;
 
     //GGridBoundaryIdx
-    is >> type >> value >> value >> row >> col;
+    is >> type >> RowBegin >> ColBegin >> RowEnd >> ColEnd;
 
-    //Layers
+    //---------------------------------------------------Layer&Ggrid setting-------------------------------------------------------
     is >> type >> value;
-    layers.resize(value);
-    for(size_t i=0;i<layers.size();++i){
-        Layer* TMP = new Layer(is,layers);
+    Layers.resize(value);//value is #Layers
+    Ggrids.resize(value);
+    for(int i = 0; i < value; ++i)
+    {
+        int index,supply;
+        float powerfactor;
+        is >> type >> type >> index >> type >> supply >> powerfactor;
+        Layers.at(index-1) = Layer{type,supply,powerfactor};//Layer Info
+        Ggrids.at(index-1) = Ggrid2D(RowEnd-RowBegin+1,Ggrid1D(ColEnd-ColBegin+1,Ggrid{supply}));//Layer Ggrids
     }
 
-    //Initial each layer's routing supply
-    for(int i = 0; i < row; i++) {
-        ggrids.push_back(std::vector<std::vector<Ggrid*>>());
-        //graph.cellCount.push_back(vector<unordered_map<int,int>>());
-        //graph.placement.push_back(vector<unordered_set<int>>());
-        for(int j = 0; j < col; j++) {
-            ggrids.at(i).push_back(std::vector<Ggrid*>());
-            //graph.cellCount[i].push_back(unordered_map<int,int>());
-            //graph.placement[i].push_back(unordered_set<int>());
-            for(int k = 0; k < layers.size(); k++) {
-                ggrids.at(i).at(j).push_back(new Ggrid(layers.at(k)->supply));
-	        }
-        }
-    }
     //NumNonDefaultSupplyGGrid
     is >> type >> value;
     for(int i=0;i<value;++i){
-        int x,y,z,offset;
-	    is >> x >> y >> z >> offset;
-	    ggrids.at(x-1).at(y-1).at(z-1)->capacity += offset;
+        int row,col,lay,offset;
+	    is >> row >> col >> lay >> offset;
+	    (*this)(row,col,lay).capacity += offset;
     }
-    //------------------------------------------------------MasterCell------------------------------------------------------------
+    //-------------------------------------------------------MasterCell------------------------------------------------------------
     is >> type >> value;
     std::getline(is,type);
     for(int i = 0;i<value;i++){
         MasterCell *TMP = new MasterCell(is,mCell);
     }
 
-    //------------------------------------------------------CellInst------------------------------------------------------------
+    //-------------------------------------------------------CellInst------------------------------------------------------------
     std::string each_line;
     std::getline(is,each_line);
     int InstNum = std::stoi(split(each_line,' ',0,each_line.size(),2).at(1));
@@ -64,24 +63,22 @@ void Graph::parser(std::string fileName){
         std::getline(is,each_line);
         CellInst *TMP = new CellInst(each_line,mCell,CellInsts);
     }
-    //------------------------------------------------------Net------------------------------------------------------------
+    //----------------------------------------------------------Net------------------------------------------------------------
     std::getline(is,each_line);
     int NumNets = std::stoi(split(each_line,' ',0,each_line.size(),2).at(1));
     for(int i = 0;i<NumNets;i++){
         Net *TMP = new Net(is,CellInsts,Nets);
     }
 
-    //------------------------------------------------------Route------------------------------------------------------------
+    //------------------------------------------------------Initial Routing------------------------------------------------------------
     is >> type >> value;
     for(int i=0;i<value;++i){
-        int x1,y1,z1;
-        int x2,y2,z2;
-        is >> x1 >> y1 >> z1 >> x2 >> y2 >> z2 >>type;
-        ++ggrids.at(x1-1).at(y1-1).at(z1-1)->demand;
-        ++ggrids.at(x2-1).at(y2-1).at(z2-1)->demand;
-        //not done yet...
+        int r1,c1,l1;
+        int r2,c2,l2;
+        is >> r1 >> c1 >> l1 >> r2 >> c2 >> l2 >>type;
+        int NetId = std::stoi(std::string(type.begin()+1,type.end()));
+        add_segment_3D(Point{r1,c1,l1},Point{r2,c2,l2},*this,NetId);
     }
-
     //------------------------------------------------------NumVoltageAreas------------------------------------------------------------
     is >> type >> value;
     voltageAreas.resize(value);
@@ -113,3 +110,10 @@ void Graph::parser(std::string fileName){
 
     is.close();
 }
+
+
+
+
+
+
+
