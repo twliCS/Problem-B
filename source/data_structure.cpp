@@ -1,19 +1,5 @@
-#include "data_structure.hpp"
+#include "../header/data_structure.hpp"
 
-//---------------------Layer---------------------
-Layer::Layer(std::ifstream&is,std::vector<Layer*>&layers){
-    std::string type;
-    int index;
-
-    //ex: Lay M1 1 H 10 1.2
-    is >> type >> type >> index >> type >> supply >> powerFactor;
-    if(type=="V")
-        vertical=true;
-    else
-        vertical=false;
-    layers.at(index-1) = this;
-    std::cout<<this->vertical<<' '<< this->supply <<' '<<this->powerFactor<<std::endl;
-};
 
 //---------------------MasterCell---------------------
 MasterCell::MasterCell(std::ifstream&is,std::unordered_map<std::string,MasterCell*>&mCell)
