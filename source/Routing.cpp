@@ -47,8 +47,9 @@ std::pair<bool,bool> CanRout(int row,int col,int lay,Graph&graph,int NetId)
 {
     Ggrid& grid = graph(row,col,lay);
     Net& net = graph.getNet(NetId);
-    if(net.NotPass(grid))
-        return {grid.capacity <= grid.demand,true};
+    if(net.NotPass(grid)){
+        return {grid.capacity > grid.demand,true};
+    }
     else 
-        return {false,false};//do not need one more demand
+        return {true,false};//do not need one more demand
 }

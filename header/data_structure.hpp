@@ -77,7 +77,9 @@ struct Net{
     //記下CellInst*是為了以後移動可以得到更新的座標 x,y
     //std::string代表Pin的name,用來CellInst內查找Pin
     std::vector<PIN> net_pins;
-private:
+
+    std::vector<Ggrid*>EndPoint;//2D relation: EndPoint[0]:leftmost,EndPoint[1]:rightmost,EndPoint[2]:bottom,EndPoint[3]:top
+
     std::unordered_map<Ggrid*,bool>PassingGrids;
 };
 
