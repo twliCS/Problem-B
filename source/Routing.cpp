@@ -40,11 +40,20 @@ void add_segment_3D(Ggrid&P1,Ggrid&P2,Graph&graph,int NetID)
 
 //功能:
 //1. 判斷繞線至目標點(x,y,z)是否需要額外demand (若已經屬於net的一部分則不需要)
-//2. 若需要額外demand,則判斷是否congestion
-//first : is congestion or not 
+//2. 若需要額外demand,則判斷是否congestion 以及該Net是否能繞線至該目標點的layer
+//first : CanRout or not
 //second : need demand or not 
 std::pair<bool,bool> CanRout(int row,int col,int lay,Graph&graph,int NetId)
 {
+    //check if this Point is valid for this Net first.
+    auto RowRange = graph.RowBound();
+    auto ColRange = graph.ColBound();
+    int max_L = graph.LayerNum();
+    int min_L = graph.getNet(NetId).minLayer;
+    if(row < RowRange.first || col < ColRange.first || lay < min_L)return {false,false};//lowerbound check
+    if(row > RowRange.second|| col > ColRange.second|| lay > max_L)return {false,false};//upperbound check
+
+    //check if this Point has capacity to pass.
     Ggrid& grid = graph(row,col,lay);
     Net& net = graph.getNet(NetId);
     if(net.NotPass(grid)){
