@@ -62,6 +62,18 @@ void Graph::parser(std::string fileName){
         }
     #endif
 
+    //----------------------------------------------------row/col/lay setting------------------------------------------------------
+    for(int lay = 1;lay <= LayerNum();++lay)
+    {
+        for(int row = RowBegin; row <=RowEnd; ++row){
+            for(int col = ColBegin; col<=ColEnd;++col)
+            {
+                (*this)(row,col,lay).lay = lay;
+                (*this)(row,col,lay).row = row;
+                (*this)(row,col,lay).col = col;
+            }
+        }
+    }
 
     //NumNonDefaultSupplyGGrid
 
@@ -105,7 +117,9 @@ void Graph::parser(std::string fileName){
         int r2,c2,l2;
         is >> r1 >> c1 >> l1 >> r2 >> c2 >> l2 >>type;
         int NetId = std::stoi(std::string(type.begin()+1,type.end()));
-        add_segment_3D(Point{r1,c1,l1},Point{r2,c2,l2},*this,NetId);
+        Ggrid& g1 = (*this)(r1,c1,l1);
+        Ggrid& g2 = (*this)(r2,c2,l2);
+        add_segment_3D(g1, g2 ,*this,NetId);
     }
     //------------------------------------------------------NumVoltageAreas------------------------------------------------------------
     is >> type >> value;

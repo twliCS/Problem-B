@@ -38,17 +38,28 @@ public:
     int LayerNum()const{return Layers.size();}
     std::pair<int,int>RowBound()const{return {RowBegin,RowEnd};}
     std::pair<int,int>ColBound()const{return {ColBegin,ColEnd};}
-
+    Net& getNet(int NetId){
+        if(NetId<1||NetId>Nets.size())
+        {
+            std::cout<<"Net& getNet(int NetId) input Error: 1<=NetId<="<<Nets.size()<<"\n";
+            exit(1);
+        }
+        std::string Key = "N" + std::to_string(NetId);
+        return *Nets[Key];
+    }
+    Layer& getLay(int Lay){
+        return Layers.at(Lay-1);
+    }
 //--------------------------------------------Data Mmeber------------------------------------------------------------
     std::unordered_map<std::string,MasterCell*>mCell;
     std::unordered_map<std::string,CellInst*>CellInsts;
     std::unordered_map<std::string,Net*>Nets;
     std::vector<std::vector<std::pair<int,int>>>voltageAreas;
+    std::vector<Layer>Layers;
 private:
     using Ggrid1D = std::vector<Ggrid>;
     using Ggrid2D = std::vector<Ggrid1D>;
     using Ggrid3D = std::vector<Ggrid2D>;
-    std::vector<Layer>Layers;
     Ggrid3D Ggrids;
     int MAX_Cell_MOVE;
     int RowBegin,ColBegin;
