@@ -38,7 +38,7 @@ struct CellInst{
     int col;//<gGridColIdx>
     bool Movable;//<movableCstr>
     //VoltageArea* vArea;//null if no VoltageArea
-    int vArea;
+    int vArea = -1;//" from 0 to graph.cpp:voltageAreas.size()-1 "
 };
 
 
@@ -55,7 +55,6 @@ struct Net{
 };
 
 struct Ggrid{
-    Ggrid(): demand(0) {}
     Ggrid(int c) : capacity(c), demand(0) {}
     int get_remaining(void)const {return capacity - demand;}
     float congestion_rate()const{

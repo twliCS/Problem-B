@@ -121,7 +121,7 @@ void Graph::parser(std::string fileName){
         is >> type >> counter;
         for(int j=0;j<counter;++j){
             is >> type;
-            CellInsts[type]->vArea = i;
+            CellInsts[type]->vArea = i;//" from 0 to graph.cpp:voltageAreas.size()-1 "
         }
     }
 
