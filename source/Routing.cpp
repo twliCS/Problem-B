@@ -1,8 +1,8 @@
 #include "../header/Routing.hpp"
 
 //INPUT: P1 , P2 which must only differ by one direction.
-//Really adding demand into Ggrids.
-void add_segment_3D(const Point&P1,const Point&P2,Graph&graph,int NetID)
+//Really adding demand into Ggrids. User must check the path not overflow.....
+void add_segment_3D(Ggrid&P1,Ggrid&P2,Graph&graph,int NetID)
 {
     int differ_count = 3;
     int s_r = P1.row,t_r = P2.row;
@@ -22,16 +22,18 @@ void add_segment_3D(const Point&P1,const Point&P2,Graph&graph,int NetID)
         exit(1);
     }
 
+    Net& net = graph.getNet(NetID);
     while(s_r!=t_r||s_c!=t_c||s_l!=t_l)
     {
+        //adding grid
         Ggrid& grid = graph(s_r,s_c,s_l);
-        grid.PassingByNet(NetID);
+        net.PassingGrid(grid);
         s_r += d_r;
         s_c += d_c;
         s_l += d_l;
     }
     Ggrid& grid = graph(t_r,t_c,t_l);
-    grid.PassingByNet(NetID);
+    net.PassingGrid(grid);
 }
 
 
@@ -44,7 +46,8 @@ void add_segment_3D(const Point&P1,const Point&P2,Graph&graph,int NetID)
 std::pair<bool,bool> CanRout(int row,int col,int lay,Graph&graph,int NetId)
 {
     Ggrid& grid = graph(row,col,lay);
-    if(grid.NotIn(NetId))//need one more demand
+    Net& net = graph.getNet(NetId);
+    if(net.NotPass(grid))
         return {grid.capacity <= grid.demand,true};
     else 
         return {false,false};//do not need one more demand

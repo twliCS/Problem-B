@@ -43,16 +43,7 @@ struct CellInst{
 
 
 
-struct Net{
-    std::string netName;//<netName>
-    Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,std::unordered_map<std::string,Net*>&Nets);
-    int minLayer;//<minRoutingLayConstraint>
-    float weight;//<weight>
-    using PIN = std::pair<CellInst*,std::string>;
-    //記下CellInst*是為了以後移動可以得到更新的座標 x,y
-    //std::string代表Pin的name,用來CellInst內查找Pin
-    std::vector<PIN> net_pins;
-};
+
 
 struct Ggrid{
     Ggrid(int c) : capacity(c), demand(0) {}
@@ -62,35 +53,33 @@ struct Ggrid{
         return (float)demand/capacity;
     }
     void add_demand(){demand+=1;}
-    void PassingByNet(int NetId)
-    {
-        if(NotIn(NetId)){
-            PassingNets.insert({NetId,true});
-            add_demand();
-        }
-    }
-    bool AlreadyIn(int NetId){return PassingNets.find(NetId) != PassingNets.end();}
-    bool NotIn(int NetId){return !AlreadyIn(NetId);}
-
 //----------------------------------Data Member----------------------------------------------
     int capacity;
     int demand;
-    std::unordered_map<int, bool> PassingNets;
-    //key : netId,val : true always.
-
-
-    //maybeFutre
-    //key: netId, value: sum of the number of pins and the number of segments in this Gcell for this net
-};
-
-
-
-//Others
-
-struct Point{
-    Point(int row_val,int col_val,int lay_val = 1)
-        :row{row_val},col{col_val},lay{lay_val}{}
     int row,col,lay;
 };
+
+struct Net{
+    std::string netName;//<netName>
+    Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,std::unordered_map<std::string,Net*>&Nets);
+    bool AlreadyPass(Ggrid&grid){return (PassingGrids.find(&grid) != PassingGrids.end()) && (PassingGrids[&grid]==true);}//可能曾經被rip-up
+    bool NotPass(Ggrid&grid){return !AlreadyPass(grid);}
+    void PassingGrid(Ggrid&grid)
+    {
+        if(NotPass(grid)){
+            grid.add_demand();
+            PassingGrids[&grid] = true;
+        }
+    }
+    int minLayer;//<minRoutingLayConstraint>
+    float weight;//<weight>
+    using PIN = std::pair<CellInst*,std::string>;
+    //記下CellInst*是為了以後移動可以得到更新的座標 x,y
+    //std::string代表Pin的name,用來CellInst內查找Pin
+    std::vector<PIN> net_pins;
+private:
+    std::unordered_map<Ggrid*,bool>PassingGrids;
+};
+
 
 #endif

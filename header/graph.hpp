@@ -38,7 +38,10 @@ public:
     int LayerNum()const{return Layers.size();}
     std::pair<int,int>RowBound()const{return {RowBegin,RowEnd};}
     std::pair<int,int>ColBound()const{return {ColBegin,ColEnd};}
-
+    Net& getNet(int NetId){
+        std::string Key = "N" + std::to_string(NetId);
+        return *Nets[Key];
+    }
 //--------------------------------------------Data Mmeber------------------------------------------------------------
     std::unordered_map<std::string,MasterCell*>mCell;
     std::unordered_map<std::string,CellInst*>CellInsts;
