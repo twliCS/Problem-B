@@ -1,5 +1,6 @@
 #ifndef _DATA_STRUCTURE_HPP_
 #define _DATA_STRUCTURE_HPP_
+#define PARSER_TEST
 
 #include <utility>
 #include <unordered_map>
@@ -31,7 +32,7 @@ struct MasterCell
 };
 
 struct CellInst{
-    CellInst(std::string&info,std::unordered_map<std::string,MasterCell*>&mCells,std::unordered_map<std::string,CellInst*>&CellInsts);
+    CellInst(std::ifstream&is,std::unordered_map<std::string,MasterCell*>&mCells,std::unordered_map<std::string,CellInst*>&CellInsts);
     MasterCell* mCell;
     int row;//<gGridRowIdx>
     int col;//<gGridColIdx>
@@ -75,7 +76,7 @@ struct Ggrid{
 //----------------------------------Data Member----------------------------------------------
     int capacity;
     int demand;
-    std::unordered_map<int, bool> PassingNets; 
+    std::unordered_map<int, bool> PassingNets;
     //key : netId,val : true always.
 
 

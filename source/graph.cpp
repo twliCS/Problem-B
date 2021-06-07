@@ -24,49 +24,77 @@ void Graph::parser(std::string fileName){
 
     //cell max move
     is >> type >> MAX_Cell_MOVE;
+    #ifdef PARSER_TEST
+        std::cout<<type<<' '<<MAX_Cell_MOVE<<std::endl;
+    #endif
+
+
 
     //GGridBoundaryIdx
     is >> type >> RowBegin >> ColBegin >> RowEnd >> ColEnd;
-
+    #ifdef PARSER_TEST
+        std::cout<<"GGridBoundaryIdx "<< RowBegin <<ColBegin << RowEnd << ColEnd<<std::endl;
+    #endif
     //---------------------------------------------------Layer&Ggrid setting-------------------------------------------------------
     is >> type >> value;
+    #ifdef PARSER_TEST
+        std::cout<<type<<' '<< value << std::endl;
+    #endif
     Layers.resize(value);//value is #Layers
     Ggrids.resize(value);
     for(int i = 0; i < value; ++i)
     {
         int index,supply;
         float powerfactor;
+        //     Lay     M1      1        H       10       1.2
         is >> type >> type >> index >> type >> supply >> powerfactor;
         Layers.at(index-1) = Layer{type,supply,powerfactor};//Layer Info
         Ggrids.at(index-1) = Ggrid2D(RowEnd-RowBegin+1,Ggrid1D(ColEnd-ColBegin+1,Ggrid{supply}));//Layer Ggrids
     }
+    #ifdef PARSER_TEST
+        for(size_t i=0;i<Layers.size();++i){
+            std::cout<<"M"<<i+1<<' ';
+            if(Layers.at(i).horizontal)
+                std::cout<<"H ";
+            else
+                std::cout<<"V ";
+            std::cout << Layers.at(i).supply << ' ' << Layers.at(i).powerFactor<<std::endl;
+        }
+    #endif
+
 
     //NumNonDefaultSupplyGGrid
+
     is >> type >> value;
+    #ifdef PARSER_TEST
+        std::cout<<type<<' '<<value<<std::endl;
+    #endif
     for(int i=0;i<value;++i){
         int row,col,lay,offset;
 	    is >> row >> col >> lay >> offset;
 	    (*this)(row,col,lay).capacity += offset;
+        #ifdef PARSER_TEST
+            std::cout<<row<<' '<<col<<' '<<lay<<' '<<offset<<std::endl;
+        #endif
     }
+
     //-------------------------------------------------------MasterCell------------------------------------------------------------
     is >> type >> value;
-    std::getline(is,type);
+    #ifdef PARSER_TEST
+        std::cout<<type<<' '<<value<<std::endl;
+    #endif
     for(int i = 0;i<value;i++){
         MasterCell *TMP = new MasterCell(is,mCell);
     }
 
     //-------------------------------------------------------CellInst------------------------------------------------------------
-    std::string each_line;
-    std::getline(is,each_line);
-    int InstNum = std::stoi(split(each_line,' ',0,each_line.size(),2).at(1));
-    for(int i = 0;i<InstNum;i++){
-        std::getline(is,each_line);
-        CellInst *TMP = new CellInst(each_line,mCell,CellInsts);
+    is >> type >> value;
+    for(int i = 0;i<value;i++){
+        CellInst *TMP = new CellInst(is,mCell,CellInsts);
     }
     //----------------------------------------------------------Net------------------------------------------------------------
-    std::getline(is,each_line);
-    int NumNets = std::stoi(split(each_line,' ',0,each_line.size(),2).at(1));
-    for(int i = 0;i<NumNets;i++){
+    is >> type >> value;
+    for(int i = 0;i<value;i++){
         Net *TMP = new Net(is,CellInsts,Nets);
     }
 
@@ -110,10 +138,3 @@ void Graph::parser(std::string fileName){
 
     is.close();
 }
-
-
-
-
-
-
-

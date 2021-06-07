@@ -1,8 +1,6 @@
 #ifndef _GRAPH_HPP_
 #define _GRAPH_HPP_
 
-
-
 #include <string>
 #include <fstream>
 #include <utility>
