@@ -55,11 +55,11 @@ public:
     std::unordered_map<std::string,CellInst*>CellInsts;
     std::unordered_map<std::string,Net*>Nets;
     std::vector<std::vector<std::pair<int,int>>>voltageAreas;
+    std::vector<Layer>Layers;
 private:
     using Ggrid1D = std::vector<Ggrid>;
     using Ggrid2D = std::vector<Ggrid1D>;
     using Ggrid3D = std::vector<Ggrid2D>;
-    std::vector<Layer>Layers;
     Ggrid3D Ggrids;
     int MAX_Cell_MOVE;
     int RowBegin,ColBegin;

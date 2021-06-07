@@ -62,15 +62,10 @@ struct Ggrid{
 struct Net{
     std::string netName;//<netName>
     Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,std::unordered_map<std::string,Net*>&Nets);
-    bool AlreadyPass(Ggrid&grid){return (PassingGrids.find(&grid) != PassingGrids.end()) && (PassingGrids[&grid]==true);}//可能曾經被rip-up
+    bool AlreadyPass(Ggrid&grid){return PassingGrids.find(&grid) != PassingGrids.end();}//rip-up 需要call erase
     bool NotPass(Ggrid&grid){return !AlreadyPass(grid);}
-    void PassingGrid(Ggrid&grid)
-    {
-        if(NotPass(grid)){
-            grid.add_demand();
-            PassingGrids[&grid] = true;
-        }
-    }
+    void PassingGrid(Ggrid&grid);
+    
     int minLayer;//<minRoutingLayConstraint>
     float weight;//<weight>
     using PIN = std::pair<CellInst*,std::string>;
@@ -79,7 +74,6 @@ struct Net{
     std::vector<PIN> net_pins;
 
     std::vector<Ggrid*>EndPoint;//2D relation: EndPoint[0]:leftmost,EndPoint[1]:rightmost,EndPoint[2]:bottom,EndPoint[3]:top
-
     std::unordered_map<Ggrid*,bool>PassingGrids;
 };
 

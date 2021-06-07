@@ -83,5 +83,40 @@ Net::Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,st
         #ifdef PARSER_TEST
             std::cout<<cellName<<" "<<pinName<<"\n";
         #endif
+        //std::cout<<cellName<<" "<<pinName<<"\n";
+    }
+    EndPoint = std::vector<Ggrid*>(4,nullptr);
+}
+
+
+void Net::PassingGrid(Ggrid&grid)
+{
+    if(NotPass(grid)){
+        if(grid.capacity==grid.demand)
+        {
+            std::cerr<<"Error input in PassingGgrid, already overflow!!\n";
+            std::cout<<"happen : NetName: "<<netName<<" grid : "<<grid.row<<" "<<grid.col<<" "<<grid.lay<<"\n";
+            //exit(1);
+        }
+        else{
+            grid.add_demand();
+            PassingGrids[&grid] = true;
+
+            //Updating Endpoint
+            if(!EndPoint.at(0)){EndPoint.at(0) = &grid;}
+            if(!EndPoint.at(1)){EndPoint.at(1) = &grid;}
+            if(!EndPoint.at(2)){EndPoint.at(2) = &grid;}
+            if(!EndPoint.at(3)){EndPoint.at(3) = &grid;}
+
+            int leftmost  = EndPoint.at(0)->col;
+            int rightmost = EndPoint.at(1)->col;
+            int bottom    = EndPoint.at(2)->row;
+            int top       = EndPoint.at(3)->row;
+
+            if(grid.col < leftmost)  EndPoint.at(0) = &grid;
+            if(grid.col > rightmost) EndPoint.at(1) = &grid;
+            if(grid.row < bottom)    EndPoint.at(2) = &grid;
+            if(grid.row > top)       EndPoint.at(3) = &grid;
+        }
     }
 }
