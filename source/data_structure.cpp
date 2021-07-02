@@ -120,3 +120,29 @@ void Net::PassingGrid(Ggrid&grid)
         }
     }
 }
+
+
+int Net::get_two_pins(std::vector<std::vector<int>>& two_pin_nets){
+    //std::cout<<"netName: "<<netName<<std::endl;
+    size_t len = net_pins.size();
+    int row[len];
+    int col[len];
+    for(size_t i=0;i<len;++i){
+        row[i]=net_pins.at(i).first->row;
+        col[i]=net_pins.at(i).first->col;
+        //std::cout<<"("<<row[i]<<","<<col[i]<<")"<<std::endl;
+    }
+
+    readLUT();
+    Tree t = flute(len, row, col, ACCURACY);
+    for (int i=0; i<2*t.deg-2; i++) {
+        int x1=t.branch[i].x;
+        int x2=t.branch[t.branch[i].n].x;
+        int y1=t.branch[i].y;
+        int y2=t.branch[t.branch[i].n].y;
+        if(x1!=x2||y1!=y2){
+            two_pin_nets.push_back({x1,y1,x2,y2});
+        }
+    }
+    return t.length;
+}

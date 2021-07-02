@@ -9,9 +9,11 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+extern "C" {
+    #include "../flute-3.1/flute.h"
+}
 
 std::vector<std::string> split(const std::string&str,char symbol,int l,int r,int num);
-
 
 struct Layer{
     Layer(const std::string& RoutDir = "H",int defaultSupply = 0,float pf = 0)
@@ -65,7 +67,14 @@ struct Net{
     bool AlreadyPass(Ggrid&grid){return PassingGrids.find(&grid) != PassingGrids.end();}//rip-up 需要call erase
     bool NotPass(Ggrid&grid){return !AlreadyPass(grid);}
     void PassingGrid(Ggrid&grid);
-    
+
+    //回傳值為RSMT的總線長
+    //two_pin_nets 則是使用者須自行先創遭出的容器,待執行結束後,flute algorithm所產生之RSMT的two pins pair數量即為two_pin_nets.size()
+    //two_pin_nets.at(n).at(0)=x1, two_pin_nets.at(n).at(1)=y1, two_pin_nets.at(n).at(2)=x2, two_pin_nets.at(n).at(3)=y2
+    int get_two_pins(std::vector<std::vector<int>>& two_pin_nets);//for two-pin nets decomposition
+
+
+
     int minLayer;//<minRoutingLayConstraint>
     float weight;//<weight>
     using PIN = std::pair<CellInst*,std::string>;
