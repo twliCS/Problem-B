@@ -1,9 +1,12 @@
 #ifndef _DATA_STRUCTURE_HPP_
 #define _DATA_STRUCTURE_HPP_
-#define PARSER_TEST
+// #define PARSER_TEST
 
 #include <utility>
 #include <unordered_map>
+#include <set>
+#include <map>
+#include <float.h>
 #include <string>
 #include <fstream>
 #include <algorithm>
@@ -71,7 +74,8 @@ struct Net{
     //回傳值為RSMT的總線長
     //two_pin_nets 則是使用者須自行先創遭出的容器,待執行結束後,flute algorithm所產生之RSMT的two pins pair數量即為two_pin_nets.size()
     //two_pin_nets.at(n).at(0)=x1, two_pin_nets.at(n).at(1)=y1, two_pin_nets.at(n).at(2)=x2, two_pin_nets.at(n).at(3)=y2
-    int get_two_pins(std::vector<std::vector<int>>& two_pin_nets);//for two-pin nets decomposition
+    using point = std::tuple<int,int,int>;
+    int get_two_pins(std::vector<std::pair<point,point>>& two_pin_nets);//for two-pin nets decomposition
 
 
 
