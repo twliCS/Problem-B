@@ -18,8 +18,16 @@ int main(int argc, char** argv)
     std::string fileName = argv[1];
     //argv[1]
     Graph* graph = new Graph(path+fileName);
-    show_demand(*graph);
-    return 0;
+	
+	//graph->showEffectedNetSize();
+    graph->placementInit();	
+	int counter = 0;
+	while(graph->cellMoving()) counter++;
+	std::cout << counter;
+	
+	
+    //show_demand(*graph);
+	return 0;
 }
 
 void show_demand(Graph&graph)
@@ -43,5 +51,5 @@ void show_demand(Graph&graph)
             std::cout<<"\n";
         }
     }
-    std::cout<<"Total :"<<total_demand<<"\n";
+    //std::cout<<"Total :"<<total_demand<<"\n";
 }

@@ -1,14 +1,18 @@
 #ifndef _DATA_STRUCTURE_HPP_
 #define _DATA_STRUCTURE_HPP_
-#define PARSER_TEST
+//#define PARSER_TEST
 
+//#include "bits/stdc++.h"
 #include <utility>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <fstream>
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <queue>
+#include <functional>
 extern "C" {
     #include "../flute-3.1/flute.h"
 }
@@ -31,20 +35,34 @@ struct MasterCell
     using Pin = int;//Layer
     std::unordered_map<std::string,Pin>pins;//PinName : Pin
     std::unordered_map<std::string,Blkg>blkgs;//BlkgName : Blkg
+	
+	void sumUpBlkg();
+	int blkgSum;
 };
 
+
+struct Net;
 struct CellInst{
     CellInst(std::ifstream&is,std::unordered_map<std::string,MasterCell*>&mCells,std::unordered_map<std::string,CellInst*>&CellInsts);
     MasterCell* mCell;
     int row;//<gGridRowIdx>
     int col;//<gGridColIdx>
+
+	int originalRow, originalCol;
+
     bool Movable;//<movableCstr>
     //VoltageArea* vArea;//null if no VoltageArea
     int vArea = -1;//" from 0 to graph.cpp:voltageAreas.size()-1 "
+
+
+	int demandrequire;
+	std::vector<Net*> nets;
+	std::vector<int> optimalRegion;
+
+	void fixCell();
+	void updateOptimalRegion();
+	bool inOptimalRegion(int row, int col);
 };
-
-
-
 
 
 struct Ggrid{
@@ -84,6 +102,11 @@ struct Net{
 
     std::vector<Ggrid*>EndPoint;//2D relation: EndPoint[0]:leftmost,EndPoint[1]:rightmost,EndPoint[2]:bottom,EndPoint[3]:top
     std::unordered_map<Ggrid*,bool>PassingGrids;
+
+	std::vector<int> fixedBoundingBox;
+	void updateFixedBoundingBox();
+
+	int costToBox(int, int);
 };
 
 

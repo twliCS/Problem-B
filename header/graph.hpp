@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <utility>
+#include <cmath>
 //---------------------------------------------dataStructures---------------------------------------------------
 #include <unordered_map>
 #include "data_structure.hpp"
@@ -50,6 +51,11 @@ public:
     Layer& getLay(int Lay){
         return Layers.at(Lay-1);
     }
+
+	
+	void showEffectedNetSize();
+	CellInst* cellMoving();
+	void placementInit();
 //--------------------------------------------Data Mmeber------------------------------------------------------------
     std::unordered_map<std::string,MasterCell*>mCell;
     std::unordered_map<std::string,CellInst*>CellInsts;
@@ -64,6 +70,8 @@ private:
     int MAX_Cell_MOVE;
     int RowBegin,ColBegin;
     int RowEnd,ColEnd;
+
+	std::priority_queue< std::tuple<int, int, int>> candiPq;
 };
 
 
