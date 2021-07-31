@@ -79,6 +79,8 @@ Net::Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,st
         cellName = info.substr(0,index);
         pinName = info.substr(index+1);
         CellInst* Cell = CellInsts.find(cellName)->second;
+		Cell->nets.push_back(this);
+
         net_pins.push_back({Cell,pinName});
         #ifdef PARSER_TEST
             std::cout<<cellName<<" "<<pinName<<"\n";
@@ -102,23 +104,24 @@ void Net::PassingGrid(Ggrid&grid)
             grid.add_demand();
             PassingGrids[&grid] = true;
 
-            //Updating Endpoint
-            if(!EndPoint.at(0)){EndPoint.at(0) = &grid;}
-            if(!EndPoint.at(1)){EndPoint.at(1) = &grid;}
-            if(!EndPoint.at(2)){EndPoint.at(2) = &grid;}
-            if(!EndPoint.at(3)){EndPoint.at(3) = &grid;}
+			//Updating Endpoint
+			if(!EndPoint.at(0)){EndPoint.at(0) = &grid;}
+			if(!EndPoint.at(1)){EndPoint.at(1) = &grid;}
+			if(!EndPoint.at(2)){EndPoint.at(2) = &grid;}
+			if(!EndPoint.at(3)){EndPoint.at(3) = &grid;}
 
-            int leftmost  = EndPoint.at(0)->col;
-            int rightmost = EndPoint.at(1)->col;
-            int bottom    = EndPoint.at(2)->row;
-            int top       = EndPoint.at(3)->row;
+			int leftmost  = EndPoint.at(0)->col;
+			int rightmost = EndPoint.at(1)->col;
+			int bottom    = EndPoint.at(2)->row;
+			int top       = EndPoint.at(3)->row;
 
-            if(grid.col < leftmost)  EndPoint.at(0) = &grid;
-            if(grid.col > rightmost) EndPoint.at(1) = &grid;
-            if(grid.row < bottom)    EndPoint.at(2) = &grid;
-            if(grid.row > top)       EndPoint.at(3) = &grid;
-        }
-    }
+			if(grid.col < leftmost)  EndPoint.at(0) = &grid;
+			if(grid.col > rightmost) EndPoint.at(1) = &grid;
+			if(grid.row < bottom)    EndPoint.at(2) = &grid;
+			if(grid.row > top)       EndPoint.at(3) = &grid;
+			
+		}
+	}
 }
 
 
@@ -228,4 +231,69 @@ int Net::get_two_pins(std::vector<std::pair<point,point>>& two_pin_nets){
     if(t.branch)
         free(t.branch);
     return t.length;
+}
+
+void CellInst::fixCell(){
+	if(vArea == -1) Movable = false;
+}
+
+void Net::updateFixedBoundingBox(){
+	fixedBoundingBox = std::vector<int>{INT32_MAX, INT32_MIN, INT32_MAX, INT32_MIN};
+	bool existFixed = false;
+	for(auto& pin : net_pins){
+		if(pin.first->Movable) continue;
+		existFixed = true;
+		fixedBoundingBox[0] = min(fixedBoundingBox[0], pin.first->col);
+		fixedBoundingBox[1] = max(fixedBoundingBox[1], pin.first->col);
+		fixedBoundingBox[2] = min(fixedBoundingBox[2], pin.first->row);
+		fixedBoundingBox[3] = max(fixedBoundingBox[3], pin.first->row);
+	}
+	
+	if(!existFixed) fixedBoundingBox.resize(0);
+}
+
+void CellInst::updateOptimalRegion(){
+	originalRow = row;
+	originalCol = col;
+	
+	std::vector<int> regionCol, regionRow;
+	for(auto& net : nets){
+		if(!net->fixedBoundingBox.size()) continue;
+		regionCol.push_back(net->fixedBoundingBox[0]);
+		regionCol.push_back(net->fixedBoundingBox[1]);
+		regionRow.push_back(net->fixedBoundingBox[2]);
+		regionRow.push_back(net->fixedBoundingBox[3]);
+	}
+
+	sort(regionCol.begin(), regionCol.end());
+	sort(regionRow.begin(), regionRow.end());
+
+	if(!regionCol.size() || !regionRow.size()) optimalRegion.resize(0);
+	else{
+		optimalRegion.resize(4);
+		optimalRegion[0] = regionCol[regionCol.size() / 2 - 1];
+		optimalRegion[1] = regionCol[regionCol.size() / 2];
+		optimalRegion[2] = regionRow[regionRow.size() / 2 - 1];
+		optimalRegion[3] = regionRow[regionRow.size() / 2];
+	}
+}
+
+int Net::costToBox(int row, int col){
+	if(fixedBoundingBox.size() == 0) return 0;	
+	int dist = 0;
+
+	if(!(col > fixedBoundingBox[0] && col < fixedBoundingBox[1]))
+		dist += min(abs(col - fixedBoundingBox[0]), abs(col - fixedBoundingBox[1]));
+	if(!(row > fixedBoundingBox[2] && row < fixedBoundingBox[3]))
+		dist += min(abs(row - fixedBoundingBox[2]), abs(row - fixedBoundingBox[3]));
+
+	return dist * (int)(weight * 100);
+}
+
+bool CellInst::inOptimalRegion(int row, int col){
+	if(!optimalRegion.size() ||
+		!(col >= optimalRegion[0] && col <= optimalRegion[1]) || 
+		!(row >= optimalRegion[2] && row <= optimalRegion[3]))
+	return false;
+	return true;
 }
