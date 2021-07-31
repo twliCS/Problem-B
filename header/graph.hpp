@@ -56,6 +56,8 @@ public:
 	void showEffectedNetSize();
 	CellInst* cellMoving();
 	void placementInit();
+	bool removeCellsBlkg(CellInst*);	
+	bool insertCellsBlkg(CellInst*);
 //--------------------------------------------Data Mmeber------------------------------------------------------------
     std::unordered_map<std::string,MasterCell*>mCell;
     std::unordered_map<std::string,CellInst*>CellInsts;

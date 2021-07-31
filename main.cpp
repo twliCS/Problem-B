@@ -20,13 +20,16 @@ int main(int argc, char** argv)
     Graph* graph = new Graph(path+fileName);
 	
 	//graph->showEffectedNetSize();
+    show_demand(*graph);
     graph->placementInit();	
+    show_demand(*graph);
+	
+	
 	int counter = 0;
 	while(graph->cellMoving()) counter++;
-	std::cout << counter;
+	std::cout << counter << std::endl;
 	
-	
-    //show_demand(*graph);
+    show_demand(*graph);
 	return 0;
 }
 
