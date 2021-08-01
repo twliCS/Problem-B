@@ -278,6 +278,7 @@ void Graph::placementInit(){
 			if(gain >= 0) candiPq.push({gain, stoi(p.first.substr(1)), i });
 		}
 	}
+	std::cout << candiPq.size() << std::endl;
 }
 
 bool Graph::removeCellsBlkg(CellInst* cell){	

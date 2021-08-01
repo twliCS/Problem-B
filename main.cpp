@@ -24,12 +24,12 @@ int main(int argc, char** argv)
     graph->placementInit();	
     show_demand(*graph);
 	
-	
+/*	
 	int counter = 0;
 	while(graph->cellMoving()) counter++;
 	std::cout << counter << std::endl;
 	
-    show_demand(*graph);
+    show_demand(*graph);*/
 	return 0;
 }
 
