@@ -9,10 +9,11 @@ void Init( std::string path,std::string fileName){graph = new Graph(path+fileNam
 void OnlyRouting(Graph*graph,std::string fileName,const std::vector<std::string> &cellinfo);
 void OutPut(Graph*graph,std::string fileName,const std::vector<std::string>&MovingCell);
 void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string>&MovingCell,bool Ripall=false);
+void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::string>&MovingCell,bool Ripall);
 
 int main(int argc, char** argv)
 {
-    readLUT();
+	readLUT();
     if(argc!=2){
         std::cerr<<"Wrong parameters!"<<std::endl;
         return -1;
@@ -27,15 +28,13 @@ int main(int argc, char** argv)
     
     std::vector<std::string>MovingCell;
 
-	graph->show_cell_pos();
-	int num = 3;
+	//graph->show_cell_pos();
+	int num = 1;
 	while(num--){
-    OnlyRouting(graph,fileName,MovingCell);//單純routing
-    //RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
-	RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
-	}//OnlyRouting(graph,fileName,MovingCell);//單純routing
-    
-	graph->show_cell_pos();
+		//OnlyRouting(graph,fileName,MovingCell);//單純routing
+		//RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
+		RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
+	}
     
     delete graph;
 	return 0;
@@ -149,10 +148,9 @@ void OnlyRouting(Graph*graph,std::string fileName,const std::vector<std::string>
 }
 
 
-std::map<Net*,int> RelatedNets(CellInst*c)
+std::map<Net*,int> RelatedNets(CellInst*c, int Idx = 0)
 {
     std::map<Net*,int>Nets;//有一些net重複了
-    int Idx = 0;
     for(auto net:c->nets){
         if(Nets.find(net)==Nets.end())
             Nets.insert({net,Idx++});
@@ -183,15 +181,19 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         //     break;
         // }
         
-        movingCellInfo.push_back(movcellPair.first+" "+std::to_string(movCell->row)+" "+std::to_string(movCell->col));
-        
-        if(movingCellInfo.size()>graph->MAX_Cell_MOVE)
+		graph->moved_cells.insert(movCell);
+        movingCellInfo.push_back(movcellPair.first+" "+std::to_string(movCell->row)+" "+std::to_string(movCell->col));        
+        if(graph->moved_cells.size()>graph->MAX_Cell_MOVE)
         {
             movingCellInfo.pop_back();
             movCell->row = movCell->originalRow;
             movCell->col = movCell->originalCol;
             graph->insertCellsBlkg(movCell);
-            break;
+			if(movCell->row == movCell->initRow && movCell->col == movCell->initCol){
+				graph->moved_cells.erase(movCell);
+			}
+            continue;
+			//break;
         }
 
         //-----------------------------------------------RelatedNets------------------------------------------------------
@@ -208,7 +210,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         if(Ripall){
             for(auto net:Nets)//Ripup all related
             {
-                int netId = std::stoi(net.first->netName.substr(1,-1));
+                int netId = std::stoi(net.first->netName.substr(1));
                 RipUpNet(graph,graph->getNetGrids(netId));RipId.push_back(netId);
                 
             }
@@ -216,7 +218,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
 
         for(auto net:Nets)
         {
-            int netId = std::stoi(net.first->netName.substr(1,-1));
+            int netId = std::stoi(net.first->netName.substr(1));
 
             if(!Ripall){
                 RipUpNet(graph,graph->getNetGrids(netId));RipId.push_back(netId);
@@ -275,6 +277,163 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
             movCell->col = movCell->originalCol;
             graph->insertCellsBlkg(movCell);
         }
+	
+		if(movCell->row == movCell->initRow && movCell->col == movCell->initCol){
+			graph->moved_cells.erase(movCell);
+		}
+		
+        //-------------------------------------------------Accept or Reject-------------------------------------------------
+    }
+    std::cout<<"count = "<<mov<<"\n";
+    std::cout<<"sucess = "<<success<<"\n";
+    OutPut(graph,fileName,movingCellInfo);
+    std::cout<<"score = "<<graph->score<<"\n";
+    t2 = time(NULL);
+    std::cout<<"spend "<<t2-t1<<" seconds\n";
+   
+}
+
+void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::string>&movingCellInfo,bool Ripall = true)
+{
+    graph->placementInit_Swap();
+    int mov = 0;
+    int success = 0;
+	std::vector< std::pair<std::string,CellInst*>> movcellPairs;
+    float BestSc = graph->score;
+    time_t t1,t2,t3;
+    t1 = time(NULL);
+    t2 = time(NULL);
+    int interval = 60;
+    while( (movcellPairs = graph->cellSwapping()).size())//
+    { 
+		std::map<Net*,int>Nets;
+		for(auto movcellPair : movcellPairs){
+			CellInst* movCell = movcellPair.second;
+			mov++;
+
+			movingCellInfo.push_back(movcellPair.first+" "+std::to_string(movCell->row)+" "+std::to_string(movCell->col));
+
+			//-----------------------------------------------RelatedNets------------------------------------------------------
+			auto tmp = RelatedNets(movCell, Nets.size());
+			Nets.insert(tmp.begin(), tmp.end());
+			graph->moved_cells.insert(movCell);
+		}
+
+		if(graph->moved_cells.size()>graph->MAX_Cell_MOVE){	
+			for(auto movcellPair : movcellPairs){
+				CellInst* movCell = movcellPair.second;
+				movingCellInfo.pop_back();
+				movCell->row = movCell->originalRow;
+				movCell->col = movCell->originalCol;
+				graph->insertCellsBlkg(movCell);
+				
+				if(movCell->row == movCell->initRow && movCell->col == movCell->initCol){
+					graph->moved_cells.erase(movCell);
+				}
+			};
+			continue;
+			//break;
+		}
+
+
+
+
+        //-------------------------------------------------Routing Init---------------------------------------------------
+        bool movingsuccess = true;
+        std::vector<ReroutInfo>infos;infos.reserve(Nets.size());//each time a routing success , insert nettree/netgrids.
+        std::vector<int>RipId;RipId.reserve(Nets.size());//each time rip-up , need insert netId to RipId.
+        //-------------------------------------------------Routing Init---------------------------------------------------
+
+        
+        //---------------------------------------------------RipUP----------------------------------------------------------
+        if(Ripall){
+            for(auto net:Nets)//Ripup all related
+            {
+                int netId = std::stoi(net.first->netName.substr(1,-1));
+                RipUpNet(graph,graph->getNetGrids(netId));
+				RipId.push_back(netId);
+                
+            }
+        }
+        for(auto net:Nets)
+        {
+            int netId = std::stoi(net.first->netName.substr(1,-1));
+
+            if(!Ripall){
+                RipUpNet(graph,graph->getNetGrids(netId));RipId.push_back(netId);
+            }
+            //---------------------------------------------------RipUP----------------------------------------------------------
+
+            //-------------------------------------------------Routing----------------------------------------------------------
+            TwoPinNets twopins;
+            get_two_pins(twopins,*net.first);
+            std::pair<ReroutInfo,bool> result = Reroute(graph,netId,twopins);
+
+            if(result.second==false)//failed
+            {
+                movingsuccess = false;
+                break;
+            }
+            else{//success
+                AddingNet(graph,result.first.netgrids);
+                infos.push_back(result.first);
+            }
+            //-------------------------------------------------Routing----------------------------------------------------------
+        }
+            
+
+        //-------------------------------------------------Accept or Reject-------------------------------------------------
+			if(movingsuccess)
+			{
+				if(graph->score <= BestSc)  //Accept
+				{
+					Accept(graph,infos);
+					BestSc = graph->score;
+					success++;
+					t3 = time(NULL);
+					if(t3 > t2 + interval)
+					{
+						t2 = time(NULL);
+						std::cout<<"spend "<<t3-t1<<" seconds\n";
+						std::cout<<"Best = "<<BestSc<<"\n";
+						OutPut(graph,fileName,movingCellInfo);
+					}
+
+					for(auto movcellPair : movcellPairs){
+						CellInst* movCell = movcellPair.second;
+						movCell->originalRow = movCell->row;
+						movCell->originalCol = movCell->col;
+					}
+				}
+				else{                     //Reject
+					//movingCellInfo.pop_back();
+					Reject(graph,infos,RipId);
+					for(auto movcellPair : movcellPairs){
+						CellInst* movCell = movcellPair.second;
+						movCell->row = movCell->originalRow;
+						movCell->col = movCell->originalCol;
+						graph->insertCellsBlkg(movCell);
+					}
+				}
+			}
+			else{                        //Reject
+				//movingCellInfo.pop_back();
+				Reject(graph,infos,RipId);
+				for(auto movcellPair : movcellPairs){
+					CellInst* movCell = movcellPair.second;
+					movCell->row = movCell->originalRow;
+					movCell->col = movCell->originalCol;
+					graph->insertCellsBlkg(movCell);
+				}
+			}
+
+			for(auto movcellPair : movcellPairs){
+				CellInst* movCell = movcellPair.second;
+				if(movCell->row == movCell->initRow && movCell->col == movCell->initCol){
+					graph->moved_cells.erase(movCell);
+				}
+			}
+
         //-------------------------------------------------Accept or Reject-------------------------------------------------
     }
     std::cout<<"count = "<<mov<<"\n";
@@ -302,9 +461,9 @@ void OutPut(Graph*graph,std::string fileName,const std::vector<std::string>&Movi
         exit(1);
     } 
 
-    os<<"NumMovedCellInst "<<MovingCell.size()<<"\n";
-    for(auto cell:MovingCell)
-        os<<"CellInst "<<cell<<"\n";
+    os<<"NumMovedCellInst "<< graph->moved_cells.size() <<"\n";
+    for(auto cell:graph->moved_cells)
+        os<<"CellInst "<< cell->name << " " << cell->row << " " << cell->col <<"\n";
     os<<"NumRoutes "<<NumRoutes<<"\n";
 
     for(auto s:segments)

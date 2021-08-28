@@ -52,6 +52,7 @@ struct CellInst{
     int col;//<gGridColIdx>
 
 	int originalRow, originalCol;
+	int initRow, initCol;
 
     bool Movable;//<movableCstr>
     //VoltageArea* vArea;//null if no VoltageArea
@@ -65,7 +66,8 @@ struct CellInst{
 	void fixCell();
 	void updateOptimalRegion();
 	bool inOptimalRegion(int, int);
-	void expandOptimalReion(int, int, int);
+	void expandOptimalReion(int, int, int, int, int);
+	std::string name;
 };
 
 
@@ -83,7 +85,7 @@ struct Ggrid{
         {
             std::cout<<"delete_demand error!!\n";
             std::cout<<row<<" "<<col<<" "<<lay<<"\n";
-            exit(1);
+            //exit(1);
         }
 
         demand = max(demand-dmd,0);

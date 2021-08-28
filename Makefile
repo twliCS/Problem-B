@@ -3,8 +3,8 @@ CC := gcc
 DIR_HEADER := ./header
 DIR_SOURCE := ./source
 DIR_FLUTE := ./flute-3.1
-CXXFLAGS := -std=c++11 -g -c -I ./header -I ./flute-3.1 -O2
-CCFLAGS := -c -g -I ./flute-3.1 -O2
+CXXFLAGS := -std=c++11 -g3 -c -I ./header -I ./flute-3.1 -O2
+CCFLAGS := -c -g3 -I ./flute-3.1 -O2
 TARGET := main
 
 

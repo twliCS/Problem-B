@@ -40,11 +40,14 @@ MasterCell::MasterCell(std::ifstream&is,std::unordered_map<std::string,MasterCel
 //---------------------CellInst---------------------
 CellInst::CellInst(std::ifstream&is,std::unordered_map<std::string,MasterCell*>&mCells,std::unordered_map<std::string,CellInst*>&CellInsts)
 {
-    std::string cell_name;
+	std::string tmp;
+	std::string cell_name;
     std::string m_cell_name;
     std::string type;
-    is >> cell_name >> cell_name >> m_cell_name;
-    mCell = mCells.find(m_cell_name)->second;
+    is >> tmp >> cell_name >> m_cell_name;
+    
+	name = cell_name;
+	mCell = mCells.find(m_cell_name)->second;
     is >> row >> col >> type;
     Movable = (type=="Movable");
     #ifdef PARSER_TEST
@@ -114,6 +117,8 @@ void Net::updateFixedBoundingBox(){
 void CellInst::updateOptimalRegion(){
 	originalRow = row;
 	originalCol = col;
+	initRow = row;
+	initCol = col;
 	
 	std::vector<int> regionCol, regionRow;
 	for(auto& net : nets){
@@ -144,12 +149,12 @@ void CellInst::updateOptimalRegion(){
 	}
 }
 
-void CellInst::expandOptimalReion(int x = 1, int limit_row = INT32_MAX, int limit_col = INT32_MAX){
+void CellInst::expandOptimalReion(int x, int rowBegin, int rowEnd, int colBegin, int colEnd){
 	if(optimalRegion.empty()) return ;
-	optimalRegion[0] = max(optimalRegion[0] - x, 0);
-	optimalRegion[1] = min(optimalRegion[1] + x, limit_col);
-	optimalRegion[2] = max(optimalRegion[2] - x, 0);
-	optimalRegion[3] = min(optimalRegion[3] + x, limit_row);
+	optimalRegion[0] = max(optimalRegion[0] - x, rowBegin);
+	optimalRegion[1] = min(optimalRegion[1] + x, rowEnd);
+	optimalRegion[2] = max(optimalRegion[2] - x, colBegin);
+	optimalRegion[3] = min(optimalRegion[3] + x, colEnd);
 }
 
 
