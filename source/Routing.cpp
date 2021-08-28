@@ -629,9 +629,9 @@ std::pair<ReroutInfo,bool> Reroute(Graph*graph,int NetId,TwoPinNets&twopins)
     {   
         if(initdemand!=-1)
         {
-            T = MazeRouting(graph,netgrids,pins.first,pins.second);
+            // T = MazeRouting(graph,netgrids,pins.first,pins.second);
             // if(!T)
-            // T = Tree2Tree(graph,netgrids,pins.first->routing_tree,pins.second->routing_tree);
+            T = Tree2Tree(graph,netgrids,pins.first->routing_tree,pins.second->routing_tree);
         }
         if(!T) //把整個two-pin nets 繞線產生出來的tree全部collect成一棵回傳
         {

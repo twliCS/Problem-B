@@ -90,12 +90,16 @@ public:
     Layer& getLay(int Lay){
         return Layers.at(Lay-1);
     }
-	// void showEffectedNetSize();
-	// std::pair<std::string,CellInst*>cellMoving();
-	// void placementInit();
-    // bool removeCellsBlkg(CellInst* cell);
+	void showEffectedNetSize();
+	std::pair<std::string,CellInst*>cellMoving();
+	std::vector< std::pair<std::string,CellInst*>> cellSwapping();
+	void placementInit();
+	void placementInit_Swap();
+    bool removeCellsBlkg(CellInst* cell);
+    bool insertCellsBlkg(CellInst* cell);
 
-    // bool insertCellsBlkg(CellInst* cell);
+	double congest_value(int, int, int);
+	void show_cell_pos();
 
     std::pair<int,int>&lay_uti(int Lay)//first : demand of layer , second : capacity of layer
     {
@@ -112,9 +116,9 @@ public:
     std::unordered_map<std::string,Net*>Nets;
     std::vector<std::vector<std::pair<int,int>>>voltageAreas;
     std::vector<Layer>Layers;
-
     
-    
+	std::unordered_set<CellInst*> moved_cells;
+	std::unordered_map<int, std::unordered_set<int>> voltage_include;
 private:
     using Ggrid1D = std::vector<Ggrid>;
     using Ggrid2D = std::vector<Ggrid1D>;
@@ -123,8 +127,10 @@ private:
     std::vector<std::pair<int,int>>utilizations;
     int RowBegin,ColBegin;
     int RowEnd,ColEnd;
-
-	std::priority_queue< std::tuple<int, int, int>> candiPq;
+	
+	int movement_stage;
+	std::priority_queue< std::tuple<int, int, int, int, int>> candiPq;
+	std::priority_queue< std::tuple<int, int, int, int>> swappingCandiPq;
 
 //---------------------------------------------RoutingTree-------------------------------------------------------------
 public:
