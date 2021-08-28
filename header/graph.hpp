@@ -94,9 +94,10 @@ public:
 	std::pair<std::string,CellInst*>cellMoving();
 	void placementInit();
     bool removeCellsBlkg(CellInst* cell);
-
     bool insertCellsBlkg(CellInst* cell);
 
+	double congest_value(int, int, int);
+	void show_cell_pos();
 
 //--------------------------------------------Data Mmeber------------------------------------------------------------
     std::unordered_map<std::string,MasterCell*>mCell;
@@ -112,8 +113,9 @@ private:
     
     int RowBegin,ColBegin;
     int RowEnd,ColEnd;
-
-	std::priority_queue< std::tuple<int, int, int>> candiPq;
+	
+	int movement_stage;
+	std::priority_queue< std::tuple<int, int, int, int, int>> candiPq;
 
 
 //---------------------------------------------RoutingTree-------------------------------------------------------------

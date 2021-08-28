@@ -17,7 +17,7 @@ int main(int argc, char** argv)
         std::cerr<<"Wrong parameters!"<<std::endl;
         return -1;
     }
-    std::string path = "./benchmark/";
+    std::string path; //= "./benchmark/";
     std::string fileName = argv[1];
 
     Init(path,fileName);    
@@ -26,11 +26,16 @@ int main(int argc, char** argv)
     
     
     std::vector<std::string>MovingCell;
-    
-    RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
-    RoutingWithCellMOV(graph,fileName,false);//一次拆一條相關的
+
+	graph->show_cell_pos();
+	int num = 3;
+	while(num--){
     OnlyRouting(graph,fileName,MovingCell);//單純routing
+    //RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
+	RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
+	}//OnlyRouting(graph,fileName,MovingCell);//單純routing
     
+	graph->show_cell_pos();
     
     delete graph;
 	return 0;
@@ -239,7 +244,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         //-------------------------------------------------Accept or Reject-------------------------------------------------
         if(movingsuccess)
         {
-            if(graph->score < BestSc)  //Accept
+            if(graph->score <= BestSc)  //Accept
             {
                 Accept(graph,infos);
                 BestSc = graph->score;
@@ -252,6 +257,8 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
                     std::cout<<"Best = "<<BestSc<<"\n";
                     OutPut(graph,fileName,movingCellInfo);
                 }
+                movCell->originalRow = movCell->row;
+                movCell->originalCol = movCell->col;
             }
             else{                     //Reject
                 movingCellInfo.pop_back();

@@ -278,10 +278,21 @@ std::pair<std::string,CellInst*> Graph::cellMoving(){
 	
 	//check -> had not moved, (check coor)
 	//		  enough capacity (this part not completely implement) 
-	auto validMovement = [&](CellInst* cell, int voltageId){
-		if(cell->row != cell->originalRow || cell->col != cell->originalCol)
+	auto validMovement = [&](CellInst* cell, int curRow, int curCol){
+		std::pair<int, int> coor = {curRow, curCol};
+		if(coor.first == cell->row && coor.second == cell->col)
 			return false;
-		
+	
+		/*
+		int gain = 0;
+		for(auto& net : cell->nets){
+			gain += net->costToBox(cell->row, cell->col) * 1.2;
+			gain -= net->costToBox(coor.first, coor.second);
+		}
+		if(gain < 0) return false;
+		*/
+
+
 		std::vector<int> layersCurCap(LayerNum() + 1);
 		for(int i = 1; i <= LayerNum(); i++){
 			layersCurCap[i] = (*this) (cell->row, cell->col, i).get_remaining();
@@ -290,7 +301,7 @@ std::pair<std::string,CellInst*> Graph::cellMoving(){
 		//std::vector< std::unordered_set<Net*>> layersNet(LayerNum() + 1);
 		for(auto [name, pin] : cell->mCell->pins){
 			//layersNet[pin].insert(name);
-			//layersCurCap[pin] --;
+			layersCurCap[pin] --;
 		}
 
 		for(auto [name, blkg] : cell->mCell->blkgs){
@@ -305,16 +316,16 @@ std::pair<std::string,CellInst*> Graph::cellMoving(){
 	};
 
 	while(candiPq.size()){
-		auto [gain, cellId, voltageId] = candiPq.top();
+		auto [gain, priority, cellId, curRow, curCol] = candiPq.top();
 		candiPq.pop();
 		CellInst* cell = CellInsts["C" + std::to_string(cellId)];
 
         //std::cout<<"Remov!\n";
         removeCellsBlkg(cell);
 
-		if(validMovement(cell, voltageId)){
-			cell->row = voltageAreas[cell->vArea][voltageId].first;
-			cell->col = voltageAreas[cell->vArea][voltageId].second;
+		if(validMovement(cell, curRow, curCol)){
+			cell->row = curRow;
+			cell->col = curCol;
             if(!insertCellsBlkg(cell)){
 				//removeCellsBlkg(cell);
 				cell->row = cell->originalRow;
@@ -329,20 +340,27 @@ std::pair<std::string,CellInst*> Graph::cellMoving(){
 }
 
 void Graph::placementInit(){	
-	for(auto& p : CellInsts){
-		p.second->fixCell();
-	}
+	if(movement_stage == 0){
+		for(auto& p : CellInsts){
+			//p.second->fixCell();
+		}
 
-	//updating fixed bounding box (Net)
-	for(auto& p : Nets){
-		p.second->updateFixedBoundingBox();
-	}
+		//updating fixed bounding box (Net)
+		for(auto& p : Nets){
+			p.second->updateFixedBoundingBox();
+		}
 
-	//updating optimal region (CellInst)
-	for(auto& p : CellInsts){
-		p.second->updateOptimalRegion();
-        insertCellsBlkg(p.second);
-	}	
+		//updating optimal region (CellInst)
+		for(auto& p : CellInsts){
+			p.second->updateOptimalRegion();
+			insertCellsBlkg(p.second);
+		}	
+	}else{
+		for(auto& p : CellInsts){
+			p.second->expandOptimalReion(movement_stage, INT32_MAX, INT32_MAX);
+		}
+	}
+	movement_stage++;
 
 	//calculate every possible movable position's grade 
 	for(auto& p : CellInsts){
@@ -350,23 +368,67 @@ void Graph::placementInit(){
 		if(!cPtr -> Movable) continue;
 		
 		int voltageType = cPtr->vArea;
-		if(voltageType == -1) continue; //why not mova
-
-		for(int i = 0; i < voltageAreas[voltageType].size(); i++){
-			auto & coor = voltageAreas[voltageType][i];
-			if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+		if(voltageType == -1){
+			//for(int i = 0; i < voltageAreas[voltageType].size(); i++){
 			
-			int gain = 0;
-			for(auto& net : cPtr->nets){
-				gain += net->costToBox(cPtr->row, cPtr->col);
-				gain -= net->costToBox(coor.first, coor.second);
-			}
+			for(int curRow = RowBegin; curRow <= RowEnd; curRow++){
+			for(int curCol = ColBegin; curCol <= ColEnd; curCol++){
+				
+				std::pair<int, int> coor = {curRow, curCol};
+				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
 
-			//REMIND: gain / cell's index / grid index in the voltage
-			if(gain >= 0) candiPq.push({gain, stoi(p.first.substr(1)), i });
+				int gain = 0;
+				for(auto& net : cPtr->nets){
+					gain += net->costToBox(cPtr->row, cPtr->col);
+					gain -= net->costToBox(coor.first, coor.second);
+				}
+
+
+				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
+				//REMIND: gain / cell's index / grid index in the voltage
+				//if(gain >= 0)
+					candiPq.push({gain, priority, stoi(p.first.substr(1)), curRow, curCol});
+			}
+			}
+		}else{
+			for(int i = 0; i < voltageAreas[voltageType].size(); i++){
+				auto & coor = voltageAreas[voltageType][i];
+				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
+
+				int gain = 0;
+				for(auto& net : cPtr->nets){
+					gain += net->costToBox(cPtr->row, cPtr->col);
+					gain -= net->costToBox(coor.first, coor.second);
+				}
+
+
+				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
+				//REMIND: gain / cell's index / grid index in the voltage
+				//if(gain >= 0) 
+					candiPq.push({gain, priority, stoi(p.first.substr(1)), coor.first, coor.second });
+			}
 		}
 	}
 }
+
+double Graph::congest_value(int row, int col, int layer){
+	const double matrix[3][3] = {0.075, 0.125, 0.075, 0.125, 0.2 , 0.125, 0.075, 0.125};
+	double val = 0.0;
+	for(int i = 0; i<3; i++){
+		for(int j = 0; j < 3; j++){
+			for(int l = 1; l <= layer; l++){
+				val += matrix[i][j] * ((*this) (row, col, l).congestion_rate()) / layer;
+			}
+		}
+	}
+	return val;
+}
+
+
+
+
 bool Graph::removeCellsBlkg(CellInst* cell){	
 	for(auto [name, blkg] : cell->mCell->blkgs){
 		auto& grid = (*this)(cell->row, cell->col, blkg.first);
@@ -408,3 +470,26 @@ void Graph::updateNetGrids(int NetId,NetGrids*netgrid)
 
     netGrids.at(NetId-1) = netgrid;
 }
+
+void Graph::show_cell_pos(){
+	std::vector< std::vector<int>> table(RowEnd - RowBegin + 1, std::vector<int>(ColEnd - ColBegin + 1));
+	//std::cout << RowBegin << " " << RowEnd << " " << ColBegin << " " << ColEnd << "\n";
+	for(auto& p : CellInsts){
+		table[p.second->row - RowBegin][p.second->col - ColBegin]++;
+		//std::cout << p.second->row - RowBegin << " " << p.second->col - ColBegin << std::endl;
+	}
+	for(auto& v : table){
+		for(auto& n : v){
+			std::cout << n << " ";
+		}
+		std::cout << "\n";
+	}
+}
+
+
+
+
+
+
+
+

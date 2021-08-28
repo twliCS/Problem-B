@@ -127,8 +127,15 @@ void CellInst::updateOptimalRegion(){
 	sort(regionCol.begin(), regionCol.end());
 	sort(regionRow.begin(), regionRow.end());
 
-	if(!regionCol.size() || !regionRow.size()) optimalRegion.resize(0);
-	else{
+	if(!regionCol.size() || !regionRow.size()){
+		//std::cout << "*";
+		//optimalRegion.resize(0);
+		optimalRegion.resize(4);
+		optimalRegion[0] = col - 1;
+		optimalRegion[1] = col + 1;
+		optimalRegion[2] = row - 1;
+		optimalRegion[3] = row + 1;
+	}else{
 		optimalRegion.resize(4);
 		optimalRegion[0] = regionCol[regionCol.size() / 2 - 1];
 		optimalRegion[1] = regionCol[regionCol.size() / 2];
@@ -136,6 +143,15 @@ void CellInst::updateOptimalRegion(){
 		optimalRegion[3] = regionRow[regionRow.size() / 2];
 	}
 }
+
+void CellInst::expandOptimalReion(int x = 1, int limit_row = INT32_MAX, int limit_col = INT32_MAX){
+	if(optimalRegion.empty()) return ;
+	optimalRegion[0] = max(optimalRegion[0] - x, 0);
+	optimalRegion[1] = min(optimalRegion[1] + x, limit_col);
+	optimalRegion[2] = max(optimalRegion[2] - x, 0);
+	optimalRegion[3] = min(optimalRegion[3] + x, limit_row);
+}
+
 
 int Net::costToBox(int row, int col){
 	if(fixedBoundingBox.size() == 0) return 0;	
@@ -150,6 +166,7 @@ int Net::costToBox(int row, int col){
 }
 
 bool CellInst::inOptimalRegion(int row, int col){
+	//if(!optimalRegion.size()) return true;
 	if(!optimalRegion.size() ||
 		!(col >= optimalRegion[0] && col <= optimalRegion[1]) || 
 		!(row >= optimalRegion[2] && row <= optimalRegion[3]))

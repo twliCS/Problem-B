@@ -64,7 +64,8 @@ struct CellInst{
 
 	void fixCell();
 	void updateOptimalRegion();
-	bool inOptimalRegion(int row, int col);
+	bool inOptimalRegion(int, int);
+	void expandOptimalReion(int, int, int);
 };
 
 
