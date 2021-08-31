@@ -439,7 +439,6 @@ void Graph::placementInit(){
 		//updating optimal region (CellInst)
 		for(const auto& p : CellInsts){
 			p.second->updateOptimalRegion();
-			insertCellsBlkg(p.second);
 		}	
 	}else{
 		for(const auto& p : CellInsts){

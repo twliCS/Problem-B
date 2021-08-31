@@ -328,6 +328,8 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         if(graph->moved_cells.size()>graph->MAX_Cell_MOVE)
         {
             movingCellInfo.pop_back();
+			
+			graph->removeCellsBlkg(movCell);
             movCell->row = movCell->originalRow;
             movCell->col = movCell->originalCol;
             graph->insertCellsBlkg(movCell);
@@ -407,6 +409,8 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
             else{                     //Reject
                 movingCellInfo.pop_back();
                 Reject(graph,infos,RipId);
+				
+				graph->removeCellsBlkg(movCell);
                 movCell->row = movCell->originalRow;
                 movCell->col = movCell->originalCol;
                 graph->insertCellsBlkg(movCell);
@@ -415,6 +419,8 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         else{                        //Reject
             movingCellInfo.pop_back();
             Reject(graph,infos,RipId);
+			
+			graph->removeCellsBlkg(movCell);
             movCell->row = movCell->originalRow;
             movCell->col = movCell->originalCol;
             graph->insertCellsBlkg(movCell);
@@ -465,6 +471,7 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 			for(auto movcellPair : movcellPairs){
 				CellInst* movCell = movcellPair.second;
 				movingCellInfo.pop_back();
+				graph->removeCellsBlkg(movCell);
 				movCell->row = movCell->originalRow;
 				movCell->col = movCell->originalCol;
 				graph->insertCellsBlkg(movCell);
@@ -552,6 +559,7 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 					Reject(graph,infos,RipId);
 					for(auto movcellPair : movcellPairs){
 						CellInst* movCell = movcellPair.second;
+						graph->removeCellsBlkg(movCell);
 						movCell->row = movCell->originalRow;
 						movCell->col = movCell->originalCol;
 						graph->insertCellsBlkg(movCell);
@@ -563,6 +571,7 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 				Reject(graph,infos,RipId);
 				for(auto movcellPair : movcellPairs){
 					CellInst* movCell = movcellPair.second;
+					graph->removeCellsBlkg(movCell);
 					movCell->row = movCell->originalRow;
 					movCell->col = movCell->originalCol;
 					graph->insertCellsBlkg(movCell);
