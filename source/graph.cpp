@@ -353,7 +353,7 @@ std::pair<std::string,CellInst*> Graph::cellMoving(){
 		if(validMovement(cell, curRow, curCol)){
 			cell->row = curRow;
 			cell->col = curCol;
-            if(!insertCellsBlkg(cell)){
+            if(!insertCellsBlkg(cell)) {//std::cout << "***";
 				//removeCellsBlkg(cell);
 				cell->row = cell->originalRow;
 				cell->col = cell->originalCol;
@@ -566,6 +566,14 @@ bool Graph::removeCellsBlkg(CellInst* cell){
 }
 
 bool Graph::insertCellsBlkg(CellInst* cell){
+	/*for(const auto& p : cell->mCell->blkgs){
+		const auto& name = p.first;
+		const auto& blkg = p.second;
+		
+		auto& grid = (*this)(cell->row, cell->col, blkg.first);
+        if(grid.get_remaining()<blkg.second)return false;
+	}*/
+
 	for(const auto& p : cell->mCell->blkgs){
 		const auto& name = p.first;
 		const auto& blkg = p.second;
