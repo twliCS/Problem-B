@@ -12,6 +12,8 @@ Graph* graph = nullptr;
 void Init( std::string path,std::string fileName){graph = new Graph(path+fileName);}
 void OnlyRouting(Graph*graph,std::string fileName,const std::vector<std::string> &cellinfo);
 void OutPut(Graph*graph,std::string fileName,const std::vector<std::string>&MovingCell);
+void show_demand(Graph&graph);
+
 // void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string>&MovingCell,bool Ripall=false);
 
 
@@ -103,11 +105,12 @@ int main(int argc, char** argv)
     std::vector<std::string>MovingCell;
 
 	//graph->show_cell_pos();
-	int num = 1;
+	int num = 5;
 	while(num--){
-		//OnlyRouting(graph,fileName,MovingCell);//單純routing
-		//RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
-		RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
+		OnlyRouting(graph,fileName,MovingCell);//單純routing
+		RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
+		//RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
+		RoutingWithCellSWAP(graph,fileName,MovingCell, true);//一次拆一條相關的
 	}
     
     std::cout<<"search part1:"<<c1.count()/1000<<"s\n";
@@ -127,6 +130,29 @@ int main(int argc, char** argv)
 	return 0;
 }
 
+void show_demand(Graph&graph)
+{
+    int LayerNum = graph.LayerNum();
+    std::pair<int,int>Row = graph.RowBound();
+    std::pair<int,int>Col = graph.ColBound();
+
+    int total_demand = 0;
+    for(int lay = 1;lay <= LayerNum;lay++)
+    {
+        
+        //std::cout<<"Layer : "<< lay <<"\n";
+        for(int row = Row.second;row >=Row.first ; row--)
+        {
+            for(int col = Col.first; col <= Col.second; col++)
+            {
+                //std::cout<<graph(row,col,lay).demand<<" ";
+                total_demand+=graph(row,col,lay).demand;
+            }
+            //std::cout<<"\n";
+        }
+    }
+    std::cout<<"Total :"<<total_demand<<"\n";
+}
 
 
 
@@ -311,6 +337,8 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
     t1 = time(NULL);
     t2 = time(NULL);
     int interval = 60;
+
+	std::unordered_set<CellInst*> cur_moved;
     while( (movcellPair = graph->cellMoving()).second )//
     {   
         CellInst* movCell = movcellPair.second;
@@ -322,8 +350,9 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         //     graph->insertCellsBlkg(movCell);
         //     break;
         // }
-        
-		graph->moved_cells.insert(movCell);
+        int flag = cur_moved.count(movCell);
+
+	graph->moved_cells.insert(movCell);
         movingCellInfo.push_back(movcellPair.first+" "+std::to_string(movCell->row)+" "+std::to_string(movCell->col));        
         if(graph->moved_cells.size()>graph->MAX_Cell_MOVE)
         {
@@ -405,6 +434,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
                 }
                 movCell->originalRow = movCell->row;
                 movCell->originalCol = movCell->col;
+		//cur_moved.insert(movCell);
             }
             else{                     //Reject
                 movingCellInfo.pop_back();
@@ -414,6 +444,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
                 movCell->row = movCell->originalRow;
                 movCell->col = movCell->originalCol;
                 graph->insertCellsBlkg(movCell);
+		//cur_moved.insert(movCell);
             }
         }
         else{                        //Reject
@@ -424,6 +455,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
             movCell->row = movCell->originalRow;
             movCell->col = movCell->originalCol;
             graph->insertCellsBlkg(movCell);
+		//cur_moved.insert(movCell);
         }
 	
 		if(movCell->row == movCell->initRow && movCell->col == movCell->initCol){
@@ -470,8 +502,12 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 		if(graph->moved_cells.size()>graph->MAX_Cell_MOVE){	
 			for(auto movcellPair : movcellPairs){
 				CellInst* movCell = movcellPair.second;
-				movingCellInfo.pop_back();
 				graph->removeCellsBlkg(movCell);
+				movingCellInfo.pop_back();
+			}
+			for(auto movcellPair : movcellPairs){
+				CellInst* movCell = movcellPair.second;
+				//graph->removeCellsBlkg(movCell);
 				movCell->row = movCell->originalRow;
 				movCell->col = movCell->originalCol;
 				graph->insertCellsBlkg(movCell);
@@ -560,6 +596,10 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 					for(auto movcellPair : movcellPairs){
 						CellInst* movCell = movcellPair.second;
 						graph->removeCellsBlkg(movCell);
+					}
+					for(auto movcellPair : movcellPairs){
+						CellInst* movCell = movcellPair.second;
+						//graph->removeCellsBlkg(movCell);
 						movCell->row = movCell->originalRow;
 						movCell->col = movCell->originalCol;
 						graph->insertCellsBlkg(movCell);
@@ -572,6 +612,10 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 				for(auto movcellPair : movcellPairs){
 					CellInst* movCell = movcellPair.second;
 					graph->removeCellsBlkg(movCell);
+				}
+				for(auto movcellPair : movcellPairs){
+					CellInst* movCell = movcellPair.second;
+					//graph->removeCellsBlkg(movCell);
 					movCell->row = movCell->originalRow;
 					movCell->col = movCell->originalCol;
 					graph->insertCellsBlkg(movCell);

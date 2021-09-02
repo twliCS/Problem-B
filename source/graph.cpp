@@ -353,7 +353,7 @@ std::pair<std::string,CellInst*> Graph::cellMoving(){
 		if(validMovement(cell, curRow, curCol)){
 			cell->row = curRow;
 			cell->col = curCol;
-            if(!insertCellsBlkg(cell)) {//std::cout << "***";
+            if(!insertCellsBlkg(cell)){
 				//removeCellsBlkg(cell);
 				cell->row = cell->originalRow;
 				cell->col = cell->originalCol;
@@ -406,25 +406,39 @@ std::vector< std::pair<std::string,CellInst*>> Graph::cellSwapping(){
 		int cellId1 = std::get<2>(data);
 		int cellId2 = std::get<3>(data);
 
-		
-		
+
+
 		CellInst* cell1 = CellInsts["C" + std::to_string(cellId1)];
 		CellInst* cell2 = CellInsts["C" + std::to_string(cellId2)];
 
-        //std::cout<<"Remov!\n";
-        removeCellsBlkg(cell1);
-        removeCellsBlkg(cell2);
+		//std::cout<<"Remov!\n";
+		removeCellsBlkg(cell1);
+		removeCellsBlkg(cell2);
+
+		cell1->originalRow = cell1->row;
+		cell1->originalCol = cell1->col;
+		cell2->originalRow = cell2->row;
+		cell2->originalCol = cell2->col;
 		
+
+		int flag1, flag2;
 		if(validMovement(cell1, cell2->row, cell2->col) & validMovement(cell2, cell1->row, cell1->col)){
 			std::swap(cell1->row, cell2->row);
 			std::swap(cell1->col, cell2->col);
-            if(!insertCellsBlkg(cell1) | !insertCellsBlkg(cell2)){
+			
+			flag1 = insertCellsBlkg(cell1);
+			flag2 = insertCellsBlkg(cell2);
+
+			if(!flag1 || !flag2){
+				if(flag1) removeCellsBlkg(cell1);
+				if(flag2) removeCellsBlkg(cell2);
+
 				std::swap(cell1->row, cell2->row);
 				std::swap(cell1->col, cell2->col);
 			}else return {{"C" + std::to_string(cellId1), cell1}, {"C" + std::to_string(cellId2), cell2}};
 		}
-        insertCellsBlkg(cell1);
-        insertCellsBlkg(cell2);
+		insertCellsBlkg(cell1);
+		insertCellsBlkg(cell2);
 	}
 	return std::vector< std::pair<std::string,CellInst*>> ();
 }
@@ -442,7 +456,7 @@ void Graph::placementInit(){
 		}	
 	}else{
 		for(const auto& p : CellInsts){
-			p.second->expandOptimalReion(movement_stage, RowBegin, RowEnd, ColBegin, ColEnd);
+			if(movement_stage % 10 == 0) p.second->expandOptimalReion(movement_stage, RowBegin, RowEnd, ColBegin, ColEnd);
 		}
 	}
 	movement_stage++;
@@ -465,14 +479,14 @@ void Graph::placementInit(){
 
 				int gain = 0;
 				for(const auto& net : cPtr->nets){
-					gain += net->costToBox(cPtr->row, cPtr->col);
+					gain += net->costToBox(cPtr->row, cPtr->col);//* 1.2;
 					gain -= net->costToBox(coor.first, coor.second);
 				}
 
 
 				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
 				//REMIND: gain / cell's index / grid index in the voltage
-				//if(gain >= 0)
+				//if(gain > 0)
 					candiPq.push({priority,gain, stoi(p.first.substr(1)), curRow, curCol});
 			}
 			}
@@ -484,14 +498,14 @@ void Graph::placementInit(){
 
 				int gain = 0;
 				for(const auto& net : cPtr->nets){
-					gain += net->costToBox(cPtr->row, cPtr->col);
+					gain += net->costToBox(cPtr->row, cPtr->col);// * 1.2;
 					gain -= net->costToBox(coor.first, coor.second);
 				}
 
 
 				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
 				//REMIND: gain / cell's index / grid index in the voltage
-				//if(gain >= 0) 
+				//if(gain > 0) 
 					candiPq.push({priority,gain, stoi(p.first.substr(1)), coor.first, coor.second });
 			}
 		}
@@ -511,28 +525,29 @@ void Graph::placementInit_Swap(){
 		if(!cPtr2 -> Movable) continue;
 
 
-		if(!cPtr1->inOptimalRegion(cPtr2->row, cPtr2->col) || 
+		if((cPtr1->row == cPtr2->row && cPtr1->col == cPtr2->col) ||
+		   !cPtr1->inOptimalRegion(cPtr2->row, cPtr2->col) || 
 		   !cPtr2->inOptimalRegion(cPtr1->row, cPtr1->col) ||
 		   (cPtr1->vArea != -1 && !voltage_include[cPtr1->vArea].count(cPtr2->row << 16 + cPtr2->col)) ||
 		   (cPtr2->vArea != -1 && !voltage_include[cPtr2->vArea].count(cPtr1->row << 16 + cPtr1->col)) ) continue;
 		
-	
+		/*
 		if(cPtr1->name == "C956"){
 			std::cout << cPtr1->vArea << "!!!!!!!!!!!!!!!!!!!!";
 		}
+		*/
 
 		int gain = 0;
 		for(const auto& net : cPtr1->nets){
-			gain += net->costToBox(cPtr1->row, cPtr1->col);
+			gain += net->costToBox(cPtr1->row, cPtr1->col) * 1.2;
 			gain -= net->costToBox(cPtr2->row, cPtr2->col);
 		}
 		for(const auto& net : cPtr2->nets){
-			gain += net->costToBox(cPtr2->row, cPtr2->col);
+			gain += net->costToBox(cPtr2->row, cPtr2->col) * 1.2;
 			gain -= net->costToBox(cPtr1->row, cPtr1->col);
 		}
 
 		if(gain >= 0) swappingCandiPq.push({gain, gain, stoi(it1->first.substr(1)), stoi(it2->first.substr(1))});
-
 	}
 	}
 }
@@ -566,20 +581,18 @@ bool Graph::removeCellsBlkg(CellInst* cell){
 }
 
 bool Graph::insertCellsBlkg(CellInst* cell){
-	/*for(const auto& p : cell->mCell->blkgs){
-		const auto& name = p.first;
-		const auto& blkg = p.second;
-		
-		auto& grid = (*this)(cell->row, cell->col, blkg.first);
-        if(grid.get_remaining()<blkg.second)return false;
-	}*/
-
 	for(const auto& p : cell->mCell->blkgs){
 		const auto& name = p.first;
 		const auto& blkg = p.second;
 		
 		auto& grid = (*this)(cell->row, cell->col, blkg.first);
         if(grid.get_remaining()<blkg.second)return false;
+	}
+	for(const auto& p : cell->mCell->blkgs){
+		const auto& name = p.first;
+		const auto& blkg = p.second;
+		
+		auto& grid = (*this)(cell->row, cell->col, blkg.first);
 		grid.add_demand(blkg.second);
 	}
 	return true;
