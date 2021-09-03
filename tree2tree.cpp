@@ -3,6 +3,7 @@
 #include "header/TwoPinNet.hpp"
 #include "header/analysis.hpp"
 #include "header/RoutingSchedule.hpp"
+#include "header/flute.h"
 
 #include <time.h>
 #include <thread>

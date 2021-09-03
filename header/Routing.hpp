@@ -11,9 +11,11 @@
 #include <queue>
 #include <string>
 #include <iostream>
+#include <ctime>
 #include <algorithm>
 #include <float.h>
-
+using std::min;
+using std::max;
 //----------------------------------------------pos related----------------------------------------------------
 struct pos{
     int row,col,lay;

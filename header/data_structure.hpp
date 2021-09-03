@@ -17,10 +17,11 @@
 #include <vector>
 #include <queue>
 #include <functional>
-extern "C" {
-    #include "../flute-3.1/flute.h"
-}
-
+//extern "C" {
+//    #include "../flute-3.1/flute.h"
+//}
+using std::max;
+using std::min;
 std::vector<std::string> split(const std::string&str,char symbol,int l,int r,int num);
 
 struct Layer{

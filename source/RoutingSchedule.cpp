@@ -24,7 +24,6 @@ bool RoutingSchedule(Graph*graph,int netid,std::vector<ReroutInfo>&infos,std::ve
 
     RipUpNet(graph,oldnet);
     oldnet->set_fixed(true);
-
     //-------------------------------------Routing---------------------------------
     TwoPinNets twopins = twoPinsGen(graph->getNet(netid),defaultLayer);
     std::pair<ReroutInfo,bool> result = Reroute(graph,netid,twopins,overflowmode);
