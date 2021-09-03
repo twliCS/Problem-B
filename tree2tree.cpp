@@ -105,12 +105,13 @@ int main(int argc, char** argv)
     std::vector<std::string>MovingCell;
 
 	//graph->show_cell_pos();
-	int num = 5;
+	int num = 20;
 	while(num--){
 		OnlyRouting(graph,fileName,MovingCell);//單純routing
-		RoutingWithCellMOV(graph,fileName,MovingCell,true);//一次拆全部相關的
+		std::cout << "Moving \n";
+		RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆全部相關的
 		//RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
-		RoutingWithCellSWAP(graph,fileName,MovingCell, true);//一次拆一條相關的
+		RoutingWithCellSWAP(graph,fileName,MovingCell, false);//一次拆一條相關的
 	}
     
     std::cout<<"search part1:"<<c1.count()/1000<<"s\n";
@@ -350,11 +351,11 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         //     graph->insertCellsBlkg(movCell);
         //     break;
         // }
-        int flag = cur_moved.count(movCell);
+        int flag = false;//cur_moved.count(movCell);
 
 	graph->moved_cells.insert(movCell);
         movingCellInfo.push_back(movcellPair.first+" "+std::to_string(movCell->row)+" "+std::to_string(movCell->col));        
-        if(graph->moved_cells.size()>graph->MAX_Cell_MOVE)
+        if(graph->moved_cells.size()>graph->MAX_Cell_MOVE || flag)
         {
             movingCellInfo.pop_back();
 			
@@ -419,7 +420,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         //-------------------------------------------------Accept or Reject-------------------------------------------------
         if(movingsuccess)
         {
-            if(graph->score <= BestSc)  //Accept
+            if(graph->score + 0.00005 <= BestSc)  //Accept
             {
                 Accept(graph,infos);
                 BestSc = graph->score;
@@ -432,10 +433,22 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
                     std::cout<<"Best = "<<BestSc<<"\n";
                     OutPut(graph,fileName,movingCellInfo);
                 }
+				
+				for(auto net : movCell->nets){
+					net->cells_row.erase(net->cells_row.find(movCell->originalRow));
+					net->cells_col.erase(net->cells_col.find(movCell->originalCol));
+				}
+
                 movCell->originalRow = movCell->row;
                 movCell->originalCol = movCell->col;
-		//cur_moved.insert(movCell);
-            }
+				cur_moved.insert(movCell);
+
+		
+				for(auto net : movCell->nets){
+					net->cells_row.insert(movCell->originalRow);
+					net->cells_col.insert(movCell->originalCol);
+				}
+			}
             else{                     //Reject
                 movingCellInfo.pop_back();
                 Reject(graph,infos,RipId);
@@ -484,6 +497,8 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
     t1 = time(NULL);
     t2 = time(NULL);
     int interval = 60;
+
+	std::unordered_set<CellInst*> cur_moved;
     while( (movcellPairs = graph->cellSwapping()).size())//
     { 
 		std::map<Net*,int>Nets;
@@ -499,7 +514,14 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 			graph->moved_cells.insert(movCell);
 		}
 
-		if(graph->moved_cells.size()>graph->MAX_Cell_MOVE){	
+		int flag = 0;
+		for(auto movcellPair : movcellPairs){
+			CellInst* movCell = movcellPair.second;
+			flag |= cur_moved.count(movCell);
+			cur_moved.insert(movCell);
+		}
+		
+		if(graph->moved_cells.size()>graph->MAX_Cell_MOVE || flag){	
 			for(auto movcellPair : movcellPairs){
 				CellInst* movCell = movcellPair.second;
 				graph->removeCellsBlkg(movCell);
@@ -586,8 +608,26 @@ void RoutingWithCellSWAP(Graph*graph,std::string fileName,std::vector<std::strin
 
 					for(auto movcellPair : movcellPairs){
 						CellInst* movCell = movcellPair.second;
+						for(auto net : movCell->nets){
+							net->cells_row.erase(net->cells_row.find(movCell->originalRow));
+							net->cells_col.erase(net->cells_col.find(movCell->originalCol));
+						}
+
 						movCell->originalRow = movCell->row;
 						movCell->originalCol = movCell->col;
+						cur_moved.insert(movCell);
+
+
+						for(auto net : movCell->nets){
+							net->cells_row.insert(movCell->originalRow);
+							net->cells_col.insert(movCell->originalCol);
+						}
+						/*
+						CellInst* movCell = movcellPair.second;
+						movCell->originalRow = movCell->row;
+						movCell->originalCol = movCell->col;
+
+						cur_moved.insert(movCell);*/
 					}
 				}
 				else{                     //Reject

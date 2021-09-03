@@ -229,7 +229,7 @@ void Graph::parser(std::string fileName){
             is >> g_x >> g_y;
             voltageAreas.at(i).push_back({g_x,g_y});
 
-			voltage_include[i].insert(g_x << 16 + g_y);
+			voltage_include[i].insert((g_x << 16) + g_y);
         }
         is >> type >> counter;
         for(int j=0;j<counter;++j){
@@ -375,7 +375,7 @@ std::vector< std::pair<std::string,CellInst*>> Graph::cellSwapping(){
 		for(int i = 1; i <= LayerNum(); i++){
 			layersCurCap[i] = (*this) (cell->row, cell->col, i).get_remaining();
 		}
-
+/*
 		for(const auto& p : cell->mCell->pins){
 			const auto& name = p.first;
 			const auto& pin = p.second;
@@ -383,7 +383,7 @@ std::vector< std::pair<std::string,CellInst*>> Graph::cellSwapping(){
 
 			layersCurCap[pin] --;
 		}
-
+*/
 		for(const auto& p : cell->mCell->blkgs){
 			const auto& name = p.first;
 			const auto& blkg = p.second;
@@ -442,7 +442,7 @@ std::vector< std::pair<std::string,CellInst*>> Graph::cellSwapping(){
 	}
 	return std::vector< std::pair<std::string,CellInst*>> ();
 }
-
+/*
 void Graph::placementInit(){	
 	if(movement_stage == 0){
 		//updating fixed bounding box (Net)
@@ -456,7 +456,8 @@ void Graph::placementInit(){
 		}	
 	}else{
 		for(const auto& p : CellInsts){
-			if(movement_stage % 10 == 0) p.second->expandOptimalReion(movement_stage, RowBegin, RowEnd, ColBegin, ColEnd);
+			if(movement_stage % 5 == 0) 
+				p.second->expandOptimalReion(movement_stage, RowBegin, RowEnd, ColBegin, ColEnd);
 		}
 	}
 	movement_stage++;
@@ -472,14 +473,91 @@ void Graph::placementInit(){
 			
 			for(int curRow = RowBegin; curRow <= RowEnd; curRow++){
 			for(int curCol = ColBegin; curCol <= ColEnd; curCol++){
-				
 				std::pair<int, int> coor = {curRow, curCol};
+
+				if(cPtr->row == coor.first && cPtr->col == coor.second) continue;	
 				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
 				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
 
 				int gain = 0;
 				for(const auto& net : cPtr->nets){
-					gain += net->costToBox(cPtr->row, cPtr->col);//* 1.2;
+					gain += net->costToBox(cPtr->row, cPtr->col)* 1.2;
+					gain -= net->costToBox(coor.first, coor.second);
+				}
+
+
+				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
+				//REMIND: gain / cell's index / grid index in the voltage
+				if(gain > 0)
+					candiPq.push({priority,gain, stoi(p.first.substr(1)), curRow, curCol});
+			}
+			}
+		}else{
+			for(int i = 0; i < voltageAreas[voltageType].size(); i++){
+				auto & coor = voltageAreas[voltageType][i];
+				
+				if(cPtr->row == coor.first && cPtr->col == coor.second) continue;	
+				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
+
+				int gain = 0;
+				for(const auto& net : cPtr->nets){
+					gain += net->costToBox(cPtr->row, cPtr->col) * 1.2;
+					gain -= net->costToBox(coor.first, coor.second);
+				}
+
+
+				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
+				//REMIND: gain / cell's index / grid index in the voltage
+				if(gain > 0) 
+					candiPq.push({priority,gain, stoi(p.first.substr(1)), coor.first, coor.second });
+			}
+		}
+	}
+}
+*/
+
+
+void Graph::placementInit(){	
+	if(movement_stage == 0){
+		//updating fixed bounding box (Net)
+		for(const auto& p : Nets){
+			p.second->updateFixedBoundingBox();
+			p.second->updateCellsCoor();
+		}
+
+		//updating optimal region (CellInst)
+		for(const auto& p : CellInsts){
+			p.second->updateOptimalRegion();
+		}	
+	}else{
+		for(const auto& p : CellInsts){
+			if(movement_stage % 5 == 0) 
+				p.second->expandOptimalReion(movement_stage, RowBegin, RowEnd, ColBegin, ColEnd);
+		}
+	}
+	movement_stage++;
+
+	//calculate every possible movable position's grade 
+	for(const auto& p : CellInsts){
+		CellInst* cPtr = p.second;
+		if(!cPtr -> Movable) continue;
+/*		
+		int voltageType = cPtr->vArea;
+		if(voltageType == -1){
+			//for(int i = 0; i < voltageAreas[voltageType].size(); i++){
+			
+			for(int curRow = RowBegin; curRow <= RowEnd; curRow++){
+			for(int curCol = ColBegin; curCol <= ColEnd; curCol++){
+				std::pair<int, int> coor = {curRow, curCol};
+
+				if(cPtr->row == coor.first && cPtr->col == coor.second) continue;	
+				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
+
+				int gain = 0;
+				for(const auto& net : cPtr->nets){
+					gain += net->costToBox(cPtr->row, cPtr->col)* 1.2;
 					gain -= net->costToBox(coor.first, coor.second);
 				}
 
@@ -493,12 +571,35 @@ void Graph::placementInit(){
 		}else{
 			for(int i = 0; i < voltageAreas[voltageType].size(); i++){
 				auto & coor = voltageAreas[voltageType][i];
+				
+				if(cPtr->row == coor.first && cPtr->col == coor.second) continue;	
+				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
+
+				int gain = 0;
+			for(int curRow = RowBegin; curRow <= RowEnd; curRow++){
+			for(int curCol = ColBegin; curCol <= ColEnd; curCol++){
+				std::pair<int, int> coor = {curRow, curCol};
+
+				if(cPtr->row == coor.first && cPtr->col == coor.second) continue;	
 				if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
 				int priority = 0;// = cPtr->inOptimalRegion(coor.first, coor.second);
 
 				int gain = 0;
 				for(const auto& net : cPtr->nets){
-					gain += net->costToBox(cPtr->row, cPtr->col);// * 1.2;
+					gain += net->costToBox(cPtr->row, cPtr->col)* 1.2;
+					gain -= net->costToBox(coor.first, coor.second);
+				}
+
+
+				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
+				//REMIND: gain / cell's index / grid index in the voltage
+				//if(gain > 0)
+					candiPq.push({priority,gain, stoi(p.first.substr(1)), curRow, curCol});
+			}
+			}
+				for(const auto& net : cPtr->nets){
+					gain += net->costToBox(cPtr->row, cPtr->col) * 1.2;
 					gain -= net->costToBox(coor.first, coor.second);
 				}
 
@@ -509,6 +610,49 @@ void Graph::placementInit(){
 					candiPq.push({priority,gain, stoi(p.first.substr(1)), coor.first, coor.second });
 			}
 		}
+*/
+		//different to other, there are min_row max_row min_col max_col
+		std::vector<int> nearest_cells = cPtr->generatefineOptimalRegion();
+		/*{cPtr->row, cPtr->row, cPtr->col, cPtr->col};
+		if(cPtr->nets.empty()) continue;
+		for(auto net : cPtr->nets){
+			auto it = net->cells_row.find(cPtr->row);
+			if(net->cells_row.count(cPtr->row) > 1){
+				nearest_cells[0] = min(nearest_cells[0], it == net->cells_row.begin() ? *it : *prev(it));
+				nearest_cells[1] = max(nearest_cells[1], it == prev(net->cells_row.end()) ? *it : *next(it));
+			}
+			
+			it = net->cells_col.find(cPtr->col);
+			if(net->cells_col.count(cPtr->col) > 1){
+				nearest_cells[2] = min(nearest_cells[2], it == net->cells_col.begin() ? *it : *prev(it));
+				nearest_cells[3] = max(nearest_cells[3], it == prev(net->cells_col.end()) ? *it : *next(it));
+			}
+		}*/
+//		std::cout << nearest_cells[0] << " " << nearest_cells[1] << " " << nearest_cells[2] << " " << nearest_cells[3] << std::endl;
+
+		for(int curRow = nearest_cells[0]; curRow <= nearest_cells[1]; curRow++){
+			for(int curCol = nearest_cells[2]; curCol <= nearest_cells[3]; curCol++){
+				std::pair<int, int> coor = {curRow, curCol};
+				if(cPtr->row == coor.first && cPtr->col == coor.second) continue;
+				if(cPtr->vArea != -1 && !voltage_include[cPtr->vArea].count((coor.first << 16) + coor.second)) continue;
+				//if(!cPtr->inOptimalRegion(coor.first, coor.second)) continue;
+				int priority = 2;// = cPtr->inOptimalRegion(coor.first, coor.second);
+
+				int gain = 0;
+				/*
+				for(const auto& net : cPtr->nets){
+					gain += net->costToBox(cPtr->row, cPtr->col)* 1.2;
+					gain -= net->costToBox(coor.first, coor.second);
+				}
+*/				
+
+				priority |= congest_value(cPtr->row, cPtr->col, 2) > 0.8 && congest_value(coor.first, coor.second, 2) < 0.5;	
+				//REMIND: gain / cell's index / grid index in the voltage
+				//if(gain > 0)
+				candiPq.push({priority,gain, stoi(p.first.substr(1)), curRow, curCol});
+			}
+		}
+
 	}
 }
 
@@ -528,14 +672,9 @@ void Graph::placementInit_Swap(){
 		if((cPtr1->row == cPtr2->row && cPtr1->col == cPtr2->col) ||
 		   !cPtr1->inOptimalRegion(cPtr2->row, cPtr2->col) || 
 		   !cPtr2->inOptimalRegion(cPtr1->row, cPtr1->col) ||
-		   (cPtr1->vArea != -1 && !voltage_include[cPtr1->vArea].count(cPtr2->row << 16 + cPtr2->col)) ||
-		   (cPtr2->vArea != -1 && !voltage_include[cPtr2->vArea].count(cPtr1->row << 16 + cPtr1->col)) ) continue;
+		   (cPtr1->vArea != -1 && !voltage_include[cPtr1->vArea].count((cPtr2->row << 16) + cPtr2->col)) ||
+		   (cPtr2->vArea != -1 && !voltage_include[cPtr2->vArea].count((cPtr1->row << 16) + cPtr1->col)) ) continue;
 		
-		/*
-		if(cPtr1->name == "C956"){
-			std::cout << cPtr1->vArea << "!!!!!!!!!!!!!!!!!!!!";
-		}
-		*/
 
 		int gain = 0;
 		for(const auto& net : cPtr1->nets){

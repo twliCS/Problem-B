@@ -118,6 +118,7 @@ void CellInst::updateOptimalRegion(){
 	originalRow = row;
 	originalCol = col;
 	initRow = row;
+
 	initCol = col;
 	
 	std::vector<int> regionCol, regionRow;
@@ -148,6 +149,66 @@ void CellInst::updateOptimalRegion(){
 		optimalRegion[3] = regionRow[regionRow.size() / 2];
 	}
 }
+
+std::vector<int> CellInst::generatefineOptimalRegion(){
+	std::vector<int> regionCol, regionRow;
+	for(auto& net : nets){
+		net->cells_row.erase(net->cells_row.find(row));
+		if(net->cells_row.size()){
+			regionRow.push_back(*net->cells_row.begin());
+			regionRow.push_back(*net->cells_row.rbegin());
+		}
+		net->cells_row.insert(row);
+
+
+
+		net->cells_col.erase(net->cells_col.find(col));
+		if(net->cells_col.size()){
+			regionCol.push_back(*net->cells_col.begin());
+			regionCol.push_back(*net->cells_col.rbegin());
+		}
+		net->cells_col.insert(col);
+	}
+
+
+	sort(regionRow.begin(), regionRow.end());
+	sort(regionCol.begin(), regionCol.end());
+
+	std::vector<int> fineoptimalRegion(4);
+	if(!regionCol.size() || !regionRow.size()){
+		fineoptimalRegion[0] = row - 1;
+		fineoptimalRegion[1] = row + 1;
+		fineoptimalRegion[2] = col - 1;
+		fineoptimalRegion[3] = col + 1;
+	}else{
+		fineoptimalRegion[0] = regionRow[regionRow.size() / 2 - 1];
+		fineoptimalRegion[1] = regionRow[regionRow.size() / 2];
+		fineoptimalRegion[2] = regionCol[regionCol.size() / 2 - 1];
+		fineoptimalRegion[3] = regionCol[regionCol.size() / 2];
+	}
+
+
+	return fineoptimalRegion;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void Net::updateCellsCoor(){
+	for(auto& pin : net_pins){
+		cells_row.insert(pin.first->row);
+		cells_col.insert(pin.first->col);
+	}
+};
+
 
 void CellInst::expandOptimalReion(int x, int rowBegin, int rowEnd, int colBegin, int colEnd){
 	if(optimalRegion.empty()) return ;

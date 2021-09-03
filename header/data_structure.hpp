@@ -68,6 +68,7 @@ struct CellInst{
 	void updateOptimalRegion();
 	bool inOptimalRegion(int, int);
 	void expandOptimalReion(int, int, int, int, int);
+	std::vector<int> generatefineOptimalRegion();
 	std::string name;
 };
 
@@ -110,9 +111,11 @@ struct Net{
     //std::string代表Pin的name,用來CellInst內查找Pin
     std::vector<PIN> net_pins;
 
+	std::multiset<int> cells_row, cells_col;
  
 
 	std::vector<int> fixedBoundingBox;
+	void updateCellsCoor();
 	void updateFixedBoundingBox();
 
 	int costToBox(int, int);
