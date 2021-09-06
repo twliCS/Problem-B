@@ -94,7 +94,6 @@ Net::Net(std::ifstream&is,std::unordered_map<std::string,CellInst*>&CellInsts,st
 }
 
 
-
 void CellInst::fixCell(){
 	if(vArea == -1) Movable = false;
 }
@@ -105,10 +104,10 @@ void Net::updateFixedBoundingBox(){
 	for(auto& pin : net_pins){
 		if(pin.first->Movable) continue;
 		existFixed = true;
-		fixedBoundingBox[0] = min(fixedBoundingBox[0], pin.first->col);
-		fixedBoundingBox[1] = max(fixedBoundingBox[1], pin.first->col);
-		fixedBoundingBox[2] = min(fixedBoundingBox[2], pin.first->row);
-		fixedBoundingBox[3] = max(fixedBoundingBox[3], pin.first->row);
+		fixedBoundingBox[0] = min(fixedBoundingBox[0], pin.first->row);
+		fixedBoundingBox[1] = max(fixedBoundingBox[1], pin.first->row);
+		fixedBoundingBox[2] = min(fixedBoundingBox[2], pin.first->col);
+		fixedBoundingBox[3] = max(fixedBoundingBox[3], pin.first->col);
 	}
 	
 	if(!existFixed) fixedBoundingBox.resize(0);
@@ -118,35 +117,34 @@ void CellInst::updateOptimalRegion(){
 	originalRow = row;
 	originalCol = col;
 	initRow = row;
-
 	initCol = col;
 	
 	std::vector<int> regionCol, regionRow;
 	for(auto& net : nets){
 		if(!net->fixedBoundingBox.size()) continue;
-		regionCol.push_back(net->fixedBoundingBox[0]);
-		regionCol.push_back(net->fixedBoundingBox[1]);
-		regionRow.push_back(net->fixedBoundingBox[2]);
-		regionRow.push_back(net->fixedBoundingBox[3]);
+		regionRow.push_back(net->fixedBoundingBox[0]);
+		regionRow.push_back(net->fixedBoundingBox[1]);
+		regionCol.push_back(net->fixedBoundingBox[2]);
+		regionCol.push_back(net->fixedBoundingBox[3]);
 	}
 
-	sort(regionCol.begin(), regionCol.end());
 	sort(regionRow.begin(), regionRow.end());
+	sort(regionCol.begin(), regionCol.end());
 
 	if(!regionCol.size() || !regionRow.size()){
 		//std::cout << "*";
 		//optimalRegion.resize(0);
 		optimalRegion.resize(4);
-		optimalRegion[0] = col - 1;
-		optimalRegion[1] = col + 1;
-		optimalRegion[2] = row - 1;
-		optimalRegion[3] = row + 1;
+		optimalRegion[0] = row;
+		optimalRegion[1] = row;
+		optimalRegion[2] = col;
+		optimalRegion[3] = col;
 	}else{
 		optimalRegion.resize(4);
-		optimalRegion[0] = regionCol[regionCol.size() / 2 - 1];
-		optimalRegion[1] = regionCol[regionCol.size() / 2];
-		optimalRegion[2] = regionRow[regionRow.size() / 2 - 1];
-		optimalRegion[3] = regionRow[regionRow.size() / 2];
+		optimalRegion[0] = regionRow[regionRow.size() / 2 - 1];
+		optimalRegion[1] = regionRow[regionRow.size() / 2];
+		optimalRegion[2] = regionCol[regionCol.size() / 2 - 1];
+		optimalRegion[3] = regionCol[regionCol.size() / 2];
 	}
 }
 
@@ -176,10 +174,10 @@ std::vector<int> CellInst::generatefineOptimalRegion(){
 
 	std::vector<int> fineoptimalRegion(4);
 	if(!regionCol.size() || !regionRow.size()){
-		fineoptimalRegion[0] = row - 1;
-		fineoptimalRegion[1] = row + 1;
-		fineoptimalRegion[2] = col - 1;
-		fineoptimalRegion[3] = col + 1;
+		fineoptimalRegion[0] = row;
+		fineoptimalRegion[1] = row;
+		fineoptimalRegion[2] = col;
+		fineoptimalRegion[3] = col;
 	}else{
 		fineoptimalRegion[0] = regionRow[regionRow.size() / 2 - 1];
 		fineoptimalRegion[1] = regionRow[regionRow.size() / 2];
@@ -190,17 +188,6 @@ std::vector<int> CellInst::generatefineOptimalRegion(){
 
 	return fineoptimalRegion;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 void Net::updateCellsCoor(){
 	for(auto& pin : net_pins){
@@ -220,13 +207,13 @@ void CellInst::expandOptimalReion(int x, int rowBegin, int rowEnd, int colBegin,
 
 
 int Net::costToBox(int row, int col){
-	if(fixedBoundingBox.size() == 0) return 0;	
+	if(fixedBoundingBox.empty()) return 0;	
 	int dist = 0;
 
-	if(!(col > fixedBoundingBox[0] && col < fixedBoundingBox[1]))
-		dist += min(abs(col - fixedBoundingBox[0]), abs(col - fixedBoundingBox[1]));
-	if(!(row > fixedBoundingBox[2] && row < fixedBoundingBox[3]))
-		dist += min(abs(row - fixedBoundingBox[2]), abs(row - fixedBoundingBox[3]));
+	if(!(row > fixedBoundingBox[0] && row < fixedBoundingBox[1]))
+		dist += min(abs(row - fixedBoundingBox[0]), abs(row - fixedBoundingBox[1]));
+	if(!(col > fixedBoundingBox[2] && col < fixedBoundingBox[3]))
+		dist += min(abs(col - fixedBoundingBox[2]), abs(col - fixedBoundingBox[3]));
 
 	return dist * (int)(weight * 100);
 }
@@ -234,8 +221,8 @@ int Net::costToBox(int row, int col){
 bool CellInst::inOptimalRegion(int row, int col){
 	//if(!optimalRegion.size()) return true;
 	if(!optimalRegion.size() ||
-		!(col >= optimalRegion[0] && col <= optimalRegion[1]) || 
-		!(row >= optimalRegion[2] && row <= optimalRegion[3]))
+		!(row >= optimalRegion[0] && row <= optimalRegion[1]) || 
+		!(col >= optimalRegion[2] && col <= optimalRegion[3]))
 	return false;
 	return true;
 }

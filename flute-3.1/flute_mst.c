@@ -12,7 +12,7 @@
 #define INFNTY INT_MAX
 
 #define D2M D2(1)     // Max net degree that flute_mr will handle
-#define MR_FOR_SMALL_CASES_ONLY 1
+//#define MR_FOR_SMALL_CASES_ONLY 1
 #if MR_FOR_SMALL_CASES_ONLY
 #define MAXPART D2M    // max partition of an MST
 #define MAXT (D2M/D*2) 

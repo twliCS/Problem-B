@@ -107,11 +107,11 @@ int main(int argc, char** argv)
 	//graph->show_cell_pos();
 	int num = 20;
 	while(num--){
-		OnlyRouting(graph,fileName,MovingCell);//單純routing
+		//OnlyRouting(graph,fileName,MovingCell);//單純routing
 		std::cout << "Moving \n";
 		RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆全部相關的
 		//RoutingWithCellMOV(graph,fileName,MovingCell, false);//一次拆一條相關的
-		RoutingWithCellSWAP(graph,fileName,MovingCell, false);//一次拆一條相關的
+		//RoutingWithCellSWAP(graph,fileName,MovingCell, false);//一次拆一條相關的
 	}
     
     std::cout<<"search part1:"<<c1.count()/1000<<"s\n";
@@ -353,7 +353,7 @@ void RoutingWithCellMOV(Graph*graph,std::string fileName,std::vector<std::string
         // }
         int flag = false;//cur_moved.count(movCell);
 
-	graph->moved_cells.insert(movCell);
+		graph->moved_cells.insert(movCell);
         movingCellInfo.push_back(movcellPair.first+" "+std::to_string(movCell->row)+" "+std::to_string(movCell->col));        
         if(graph->moved_cells.size()>graph->MAX_Cell_MOVE || flag)
         {
